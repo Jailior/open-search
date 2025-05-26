@@ -1,1 +1,1 @@
-# ubc-search
+# open-search
