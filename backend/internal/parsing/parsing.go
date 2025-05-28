@@ -36,6 +36,9 @@ func NormalizeAndStripURL(inputURL string) (string, error) {
 }
 
 func CleanText(doc *goquery.Selection) string {
+	doc.Find("script, style, noscript, iframe, nav, footer, header, form, link").Each(func(i int, s *goquery.Selection) {
+		s.Remove()
+	})
 	text := doc.Find("body").Text()
 	content := strings.TrimSpace(text)
 	content = strings.Join(strings.Fields(content), " ")

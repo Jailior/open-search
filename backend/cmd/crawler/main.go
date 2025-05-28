@@ -6,6 +6,9 @@ import (
 	"github.com/Jailior/open-search/backend/internal/storage"
 )
 
+const DB_NAME = "opensearch"
+const COLL_NAME = "pages"
+
 /*
 Initializes a URL queue for BFS crawling and a visited set
 to avoid repeating web pages.
@@ -15,11 +18,12 @@ func main() {
 
 	db := storage.MakeDB()
 	db.Connect()
+	db.AddCollection(DB_NAME, COLL_NAME, crawler.PAGE_INSERT_COLLECTION)
 	defer db.Disconnect()
 
 	queue := models.MakeURLQueue()
 	visited := models.MakeSet()
 
-	seed := "https://en.wikipedia.org/wiki/Sobel_operator"
+	seed := "https://ubc.ca"
 	crawler.StartCrawler(seed, queue, visited, db)
 }

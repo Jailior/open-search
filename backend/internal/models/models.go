@@ -1,9 +1,7 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 )
@@ -22,50 +20,6 @@ func PrintPage(pd PageData) {
 	fmt.Println("Title: ", pd.Title)
 	fmt.Println("URL: ", pd.URL)
 	fmt.Println("# of Outlinks: ", len(pd.Outlinks))
-}
-
-// Crawler statistics
-type CrawlerStats struct {
-	PagesCrawled      []uint32
-	QueueSize         []int
-	PagesSkippedErr   int
-	PagesSkippedLang  int
-	DuplicatesAvoided int
-	LastUpdated       time.Time
-}
-
-func MakeCrawlerStats() *CrawlerStats {
-	return &CrawlerStats{
-		PagesCrawled:      make([]uint32, 0),
-		QueueSize:         make([]int, 0),
-		PagesSkippedErr:   0,
-		PagesSkippedLang:  0,
-		DuplicatesAvoided: 0,
-		LastUpdated:       time.Now(),
-	}
-}
-
-func (stats *CrawlerStats) Update(pagesVisited int, qLength int) {
-	if time.Now().Sub(stats.LastUpdated) >= time.Minute {
-		stats.LastUpdated = time.Now()
-		stats.PagesCrawled = append(stats.PagesCrawled, uint32(pagesVisited))
-		stats.QueueSize = append(stats.QueueSize, qLength)
-
-		// save as json
-		jsonData, jsonErr := json.Marshal(stats)
-		if jsonErr != nil {
-			fmt.Println("Error creating json object", jsonErr)
-		}
-		file, fileError := os.Create("stats.json")
-		if fileError != nil {
-			fmt.Println("Error creating file", fileError)
-		}
-		defer file.Close()
-		_, writeError := file.Write(jsonData)
-		if writeError != nil {
-			fmt.Println("Error writing to file", writeError)
-		}
-	}
 }
 
 // Thread-safe FIFO Queue

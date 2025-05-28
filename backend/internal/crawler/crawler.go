@@ -15,6 +15,7 @@ import (
 
 const maxChars = 100_000
 const lang_sample_size = 100
+const PAGE_INSERT_COLLECTION = "raw_pages"
 
 // Crawler context passed to HTML handler and others
 type CrawlContext struct {
@@ -22,19 +23,19 @@ type CrawlContext struct {
 	VisitedSet *models.Set
 	Database   *storage.Database
 	Stats      *models.CrawlerStats
+	Err        error
 }
 
 func StartCrawler(seedURL string, q *models.URLQueue, visited *models.Set, db *storage.Database) {
 	var err error
-	pagesVisited := 0
 
 	// intial colly scraper
 	c := colly.NewCollector()
 	err = c.Limit(&colly.LimitRule{
 		DomainGlob:  "*",
 		Parallelism: 2,
-		Delay:       2 * time.Second,
-		RandomDelay: 1 * time.Second,
+		Delay:       0 * time.Second,
+		RandomDelay: 0 * time.Second,
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -42,14 +43,17 @@ func StartCrawler(seedURL string, q *models.URLQueue, visited *models.Set, db *s
 
 	// initialize statistics struct
 	stats := models.MakeCrawlerStats()
+	stats.StartWriter(1*time.Minute, "stats.json")
+	defer stats.StopWriter()
 
-	// initialize html handler for processing page contents
-	handler := MakeHTMLHandler(&CrawlContext{
+	// initialize html handler and crawl context for processing page contents
+	ctx := &CrawlContext{
 		Queue:      q,
 		VisitedSet: visited,
 		Database:   db,
 		Stats:      stats,
-	})
+	}
+	handler := MakeHTMLHandler(ctx)
 
 	// Processes page contents
 	c.OnHTML("html", handler)
@@ -64,13 +68,14 @@ func StartCrawler(seedURL string, q *models.URLQueue, visited *models.Set, db *s
 			break
 		}
 		if visited.Has(url) {
-			stats.DuplicatesAvoided++
+			stats.IncrementSkippedDupe()
 			continue
 		}
 		c.Visit(url)
 		visited.Add(url)
-		pagesVisited++
-		stats.Update(pagesVisited, q.Length())
+		if ctx.Err == nil {
+			stats.PageVisit(q.Length())
+		}
 	}
 }
 
@@ -82,13 +87,17 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 		db := ctx.Database
 		stats := ctx.Stats
 
+		// erase previous errors
+		ctx.Err = nil
+
 		// clean url
 		var err error
 		url := e.Request.AbsoluteURL(e.Request.URL.String())
 		url, err = parsing.NormalizeAndStripURL(url)
 		if err != nil {
 			fmt.Println("Failed to parse URL:", err)
-			stats.PagesSkippedErr++
+			stats.IncrementSkippedErr()
+			ctx.Err = err
 			return
 		}
 
@@ -96,20 +105,19 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 
 		// extract and clean
 		doc := e.DOM
-		doc.Find("script, style, noscript, iframe, nav, footer, header, form, link").Each(func(i int, s *goquery.Selection) {
-			s.Remove()
-		})
 		content := parsing.CleanText(doc)
 
 		// detect language
 		if len(content) < lang_sample_size {
-			stats.PagesSkippedErr++
+			stats.IncrementSkippedErr()
+			ctx.Err = fmt.Errorf("Page too short error.")
 			return // page too short
 		}
 		sample := content[:lang_sample_size]
 		info := whatlanggo.Detect(sample)
 		if info.Lang != whatlanggo.Eng {
-			stats.PagesSkippedLang++
+			stats.IncrementSkippedLang()
+			ctx.Err = fmt.Errorf("Non-English page skipped.")
 			return // don't process non-English pages
 		}
 
@@ -129,7 +137,7 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 			abs_href, err = parsing.NormalizeAndStripURL(abs_href)
 			if err != nil {
 				fmt.Println("Failed to parse URL:", err)
-				stats.PagesSkippedErr++
+				stats.IncrementSkippedErr()
 				return
 			}
 			if abs_href != "" {
@@ -147,8 +155,9 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 			TimeCrawled: time.Now(),
 		}
 
-		err = db.InsertPage(&page)
+		err = db.InsertRawPage(&page, PAGE_INSERT_COLLECTION)
 		if err != nil {
+			ctx.Err = err
 			panic(err)
 		}
 
