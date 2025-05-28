@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/net/html"
 )
 
 func NormalizeAndStripURL(inputURL string) (string, error) {
@@ -35,12 +36,78 @@ func NormalizeAndStripURL(inputURL string) (string, error) {
 	return parsedURL.String(), nil
 }
 
-func CleanText(doc *goquery.Selection) string {
-	doc.Find("script, style, noscript, iframe, nav, footer, header, form, link").Each(func(i int, s *goquery.Selection) {
-		s.Remove()
+// Returns true if node is a common block level element
+func isBlockElement(nodeName string) bool {
+	switch nodeName {
+	case "address", "article", "aside", "blockquote", "canvas", "dd", "div", "dl", "dt",
+		"fieldset", "figcaption", "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6",
+		"header", "hr", "li", "main", "nav", "noscript", "ol", "p", "pre", "section",
+		"table", "tfoot", "ul", "video", "td", "th", "tr", "caption", "tbody", "thead",
+		"colgroup", "col":
+		return true
+	default:
+		return false
+	}
+}
+
+// Recursively traverses selection, appending text to string builder
+func textTraverse(s *goquery.Selection, sb *strings.Builder) {
+	s.Contents().Each(func(_ int, child *goquery.Selection) {
+		node := child.Get(0)
+		if node == nil {
+			return
+		}
+
+		if node.Type == html.TextNode {
+			// raw text, just append
+			sb.WriteString(node.Data)
+		} else if node.Type == html.ElementNode {
+			nodeName := strings.ToLower(node.Data)
+
+			// br and hr treat as spaces
+			if nodeName == "br" || nodeName == "hr" {
+				sb.WriteString(" ")
+				return
+			}
+
+			// format pre with .Text()
+			if nodeName == "pre" {
+				sb.WriteString(child.Text())
+				sb.WriteString(" ")
+				return
+			}
+
+			// recursion
+			textTraverse(child, sb)
+
+			// append string to block elements
+			if isBlockElement(nodeName) {
+				sb.WriteString(" ")
+			}
+		}
 	})
-	text := doc.Find("body").Text()
-	content := strings.TrimSpace(text)
-	content = strings.Join(strings.Fields(content), " ")
-	return content
+}
+
+func CleanText(doc *goquery.Selection) string {
+	doc.Find("script, style, noscript, iframe, nav, footer, header, form, link").Remove()
+
+	var sb strings.Builder
+
+	var contentRoot *goquery.Selection
+	if doc.Is("html") {
+		body := doc.Find("body")
+		if body.Length() > 0 {
+			contentRoot = body
+		} else {
+			// no body element found
+			contentRoot = doc
+		}
+	} else {
+		contentRoot = doc
+	}
+
+	textTraverse(contentRoot, &sb)
+
+	text := strings.Join(strings.Fields(sb.String()), " ")
+	return text
 }

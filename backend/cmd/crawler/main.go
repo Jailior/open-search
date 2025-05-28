@@ -25,5 +25,6 @@ func main() {
 	visited := models.MakeSet()
 
 	seed := "https://ubc.ca"
+	// seed := "https://www.magazine.alumni.ubc.ca/2025/campus-community/meet-3-ubcs-oldest-surviving-clubs"
 	crawler.StartCrawler(seed, queue, visited, db)
 }
