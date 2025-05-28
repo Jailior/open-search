@@ -22,6 +22,11 @@ func PrintPage(pd PageData) {
 	fmt.Println("# of Outlinks: ", len(pd.Outlinks))
 }
 
+// Redis Indexer Queue Message type
+type IndexerQueueMessage struct {
+	ID string `json:"id"` // mongodb hex _id string
+}
+
 // Thread-safe FIFO Queue
 type URLQueue struct {
 	elems []string

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/Jailior/open-search/backend/internal/models"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -57,8 +58,11 @@ func (db *Database) AddCollection(dbname string, collectionname string, key stri
 }
 
 // Inserts a PageData page as a document in collection
-func (db *Database) InsertRawPage(pd *models.PageData, key string) error {
-	_, err := db.collection[key].InsertOne(db.ctx, *pd)
+func (db *Database) InsertRawPage(pd *models.PageData, key string) (string, error) {
+	res, err := db.collection[key].InsertOne(db.ctx, *pd)
 	db.Error = err
-	return err
+	if err != nil {
+		return "", err
+	}
+	return res.InsertedID.(primitive.ObjectID).Hex(), nil
 }

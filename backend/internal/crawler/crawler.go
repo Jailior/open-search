@@ -23,6 +23,7 @@ type CrawlContext struct {
 	VisitedSet *models.Set
 	Database   *storage.Database
 	Stats      *models.CrawlerStats
+	Redis      *storage.RedisClient
 	Err        error
 }
 
@@ -46,12 +47,16 @@ func StartCrawler(seedURL string, q *models.URLQueue, visited *models.Set, db *s
 	stats.StartWriter(1*time.Minute, "stats.json")
 	defer stats.StopWriter()
 
+	// initialize redis client
+	rdc := storage.MakeRedisClient()
+
 	// initialize html handler and crawl context for processing page contents
 	ctx := &CrawlContext{
 		Queue:      q,
 		VisitedSet: visited,
 		Database:   db,
 		Stats:      stats,
+		Redis:      rdc,
 	}
 	handler := MakeHTMLHandler(ctx)
 
@@ -86,6 +91,7 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 		q := ctx.Queue
 		db := ctx.Database
 		stats := ctx.Stats
+		rdc := ctx.Redis
 
 		// erase previous errors
 		ctx.Err = nil
@@ -155,10 +161,17 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 			TimeCrawled: time.Now(),
 		}
 
-		err = db.InsertRawPage(&page, PAGE_INSERT_COLLECTION)
+		id, err := db.InsertRawPage(&page, PAGE_INSERT_COLLECTION)
 		if err != nil {
 			ctx.Err = err
 			panic(err)
+		}
+
+		err = rdc.PushToStream("pages_to_index", "id", id)
+		if err != nil {
+			fmt.Println("Failed to push to Redis stream: ", err)
+			ctx.Err = err
+			return
 		}
 
 		models.PrintPage(page)
