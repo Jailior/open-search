@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/redis/go-redis/v9"
@@ -31,4 +32,22 @@ func (r *RedisClient) PushToStream(stream string, key string, value string) erro
 		Values: map[string]interface{}{key: value},
 	}).Err()
 	return err
+}
+
+// Reads a key value pair from a stream
+func (r *RedisClient) ReadAckStream(streamName string, group string, consumerName string) ([]redis.XStream, error) {
+	entries, err := r.Client.XReadGroup(r.Ctx, &redis.XReadGroupArgs{
+		Group:    group,
+		Consumer: consumerName,
+		Streams:  []string{streamName, ">"},
+		Count:    10,
+		Block:    0, // blocks forever
+	}).Result()
+
+	if err != nil {
+		fmt.Println("Redis XRead Error: ", err)
+		return nil, err
+	}
+
+	return entries, nil
 }

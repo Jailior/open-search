@@ -1,7 +1,8 @@
 # open-search
 
-Set MongoDB env variable:
+Set MongoDB and REDIS env variables:
 ```bash
 export MONGODB_URI='URI_HERE'
+export REDIS_ADDR='ADDR_HERE'
 ```
-An example URI for MongoDB running locally would be: `mongodb://localhost:27017`
+A typical URI for MongoDB running locally would be: `mongodb://localhost:27017` and for Redis is `localhost:6379`

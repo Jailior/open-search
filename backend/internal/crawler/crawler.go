@@ -15,7 +15,11 @@ import (
 
 const maxChars = 100_000
 const lang_sample_size = 100
-const PAGE_INSERT_COLLECTION = "raw_pages"
+
+const DB_NAME = "opensearch"
+const PAGE_INSERT_COLLECTION = "pages"
+
+const REDIS_INDEX_QUEUE = "pages_to_index"
 
 // Crawler context passed to HTML handler and others
 type CrawlContext struct {
@@ -27,8 +31,12 @@ type CrawlContext struct {
 	Err        error
 }
 
-func StartCrawler(seedURL string, q *models.URLQueue, visited *models.Set, db *storage.Database) {
+func StartCrawler(seedURL string, ctx *CrawlContext) {
 	var err error
+
+	q := ctx.Queue
+	visited := ctx.VisitedSet
+	stats := ctx.Stats
 
 	// intial colly scraper
 	c := colly.NewCollector()
@@ -42,22 +50,7 @@ func StartCrawler(seedURL string, q *models.URLQueue, visited *models.Set, db *s
 		log.Fatal(err)
 	}
 
-	// initialize statistics struct
-	stats := models.MakeCrawlerStats()
-	stats.StartWriter(1*time.Minute, "stats.json")
-	defer stats.StopWriter()
-
-	// initialize redis client
-	rdc := storage.MakeRedisClient()
-
-	// initialize html handler and crawl context for processing page contents
-	ctx := &CrawlContext{
-		Queue:      q,
-		VisitedSet: visited,
-		Database:   db,
-		Stats:      stats,
-		Redis:      rdc,
-	}
+	// initialize html handler, called on html visit
 	handler := MakeHTMLHandler(ctx)
 
 	// Processes page contents
@@ -167,7 +160,8 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 			panic(err)
 		}
 
-		err = rdc.PushToStream("pages_to_index", "id", id)
+		// push page id to redis stream
+		err = rdc.PushToStream(REDIS_INDEX_QUEUE, "id", id)
 		if err != nil {
 			fmt.Println("Failed to push to Redis stream: ", err)
 			ctx.Err = err

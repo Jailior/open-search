@@ -2,9 +2,11 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/Jailior/open-search/backend/internal/models"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -53,16 +55,62 @@ func (db *Database) Disconnect() {
 	}
 }
 
-func (db *Database) AddCollection(dbname string, collectionname string, key string) {
-	db.collection[key] = db.client.Database(dbname).Collection(collectionname)
+// Adds collection with collection name to database, must be done before any functions called using this collection
+func (db *Database) AddCollection(dbname string, collectionname string) {
+	db.collection[collectionname] = db.client.Database(dbname).Collection(collectionname)
+}
+
+// Returns a reference to a collection stored in Database
+func (db *Database) GetCollection(collectionname string) *mongo.Collection {
+	return db.collection[collectionname]
 }
 
 // Inserts a PageData page as a document in collection
-func (db *Database) InsertRawPage(pd *models.PageData, key string) (string, error) {
-	res, err := db.collection[key].InsertOne(db.ctx, *pd)
+func (db *Database) InsertRawPage(pd *models.PageData, collectionname string) (string, error) {
+	res, err := db.collection[collectionname].InsertOne(db.ctx, *pd)
 	db.Error = err
 	if err != nil {
 		return "", err
 	}
 	return res.InsertedID.(primitive.ObjectID).Hex(), nil
+}
+
+// Fetches a page with doc _id idHex from the collection
+func (db *Database) FetchPage(idHex string, collectionname string) (*models.PageData, error) {
+	id, err := primitive.ObjectIDFromHex(idHex)
+	if err != nil {
+		return nil, err
+	}
+
+	var result models.PageData
+	err = db.collection[collectionname].FindOne(db.ctx, bson.M{"_id": id}).Decode(&result)
+	return &result, err
+}
+
+// Updates a term in the collection based on a filter and update bson.M
+// Returns a reference to the mongo UpdateResult from the update
+func (db *Database) UpdateTerm(collectionname string, filter bson.M, update bson.M) (*mongo.UpdateResult, error) {
+	collection := db.GetCollection(collectionname)
+	if collection == nil {
+		fmt.Println("Collection with name", collectionname, "not in Database struct")
+		return nil, fmt.Errorf("Collection name not found.")
+	}
+	result, err := collection.UpdateOne(db.ctx, filter, update, options.Update().SetUpsert(true))
+	return result, err
+}
+
+// Increments the DF key's value in a document selected via filter
+// Assumes the document has a DF key
+func (db *Database) IncrementDF(collectionname string, filter bson.M) error {
+	collection := db.GetCollection(collectionname)
+	if collection == nil {
+		fmt.Println("Collection with name", collectionname, "not in Database struct")
+		return fmt.Errorf("Collection name not found.")
+	}
+	_, _ = collection.UpdateOne(
+		db.ctx,
+		filter,
+		bson.M{"$inc": bson.M{"DF": 1}},
+	)
+	return nil
 }
