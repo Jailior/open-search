@@ -1,7 +1,7 @@
 package models
 
 import (
-	"fmt"
+	"log"
 	"sync"
 	"time"
 )
@@ -17,9 +17,9 @@ type PageData struct {
 
 // Prints key elements of a page
 func PrintPage(pd PageData) {
-	fmt.Println("Title: ", pd.Title)
-	fmt.Println("URL: ", pd.URL)
-	fmt.Println("# of Outlinks: ", len(pd.Outlinks))
+	log.Println("Title: ", pd.Title)
+	log.Println("URL: ", pd.URL)
+	log.Println("# of Outlinks: ", len(pd.Outlinks))
 }
 
 // Redis Indexer Queue Message type

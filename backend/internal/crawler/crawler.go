@@ -94,7 +94,7 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 		url := e.Request.AbsoluteURL(e.Request.URL.String())
 		url, err = parsing.NormalizeAndStripURL(url)
 		if err != nil {
-			fmt.Println("Failed to parse URL:", err)
+			log.Println("Failed to parse URL:", err)
 			stats.IncrementSkippedErr()
 			ctx.Err = err
 			return
@@ -135,7 +135,7 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 			abs_href := e.Request.AbsoluteURL(href)
 			abs_href, err = parsing.NormalizeAndStripURL(abs_href)
 			if err != nil {
-				fmt.Println("Failed to parse URL:", err)
+				log.Println("Failed to parse URL:", err)
 				stats.IncrementSkippedErr()
 				return
 			}
@@ -163,7 +163,7 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 		// push page id to redis stream
 		err = rdc.PushToStream(REDIS_INDEX_QUEUE, "id", id)
 		if err != nil {
-			fmt.Println("Failed to push to Redis stream: ", err)
+			log.Println("Failed to push to Redis stream: ", err)
 			ctx.Err = err
 			return
 		}

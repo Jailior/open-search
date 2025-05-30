@@ -2,7 +2,7 @@ package models
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"os"
 	"sync"
 	"time"
@@ -58,13 +58,13 @@ func (stats *CrawlerStats) StartWriter(interval time.Duration, filename string) 
 				jsonData, err := json.MarshalIndent(stats, "", "  ")
 				stats.mu.Unlock()
 				if err != nil {
-					fmt.Println("Error serializing CrawlerStats:", err)
+					log.Println("Error serializing CrawlerStats:", err)
 					continue
 				}
 
 				err = os.WriteFile(filename, jsonData, 0644)
 				if err != nil {
-					fmt.Println("Error writing to stats file: ", err)
+					log.Println("Error writing to stats file: ", err)
 				}
 			case <-stats.stopChan:
 				return

@@ -2,7 +2,7 @@ package storage
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"os"
 
 	"github.com/redis/go-redis/v9"
@@ -45,7 +45,7 @@ func (r *RedisClient) ReadAckStream(streamName string, group string, consumerNam
 	}).Result()
 
 	if err != nil {
-		fmt.Println("Redis XRead Error: ", err)
+		log.Println("Redis XRead Error: ", err)
 		return nil, err
 	}
 

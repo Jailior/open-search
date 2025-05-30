@@ -1,7 +1,7 @@
 package indexer
 
 import (
-	"fmt"
+	"log"
 	"strings"
 	"unicode"
 
@@ -27,7 +27,7 @@ type Indexer struct {
 func Tokenize(text string) map[string][]int {
 	words := make(map[string][]int)
 
-	// 	split by whitespace, lowercase and strip puncuation
+	// split by whitespace, lowercase and strip puncuation
 	tokens := strings.FieldsFunc(text, func(r rune) bool {
 		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
 	})
@@ -70,7 +70,7 @@ func (idx *Indexer) IndexPage(docId string, page *models.PageData) error {
 		// update term in database
 		result, err := idx.Database.UpdateTerm(PAGE_INDEX_COLLECTION, filter, update)
 		if err != nil {
-			fmt.Println("Failed to update index for term", term, ": ", err)
+			log.Println("Failed to update index for term", term, ": ", err)
 			continue
 		}
 
@@ -92,25 +92,25 @@ func (idx *Indexer) ProcessEntries(entries []redis.XStream) {
 			idVal := message.Values["id"]
 			idStr, ok := idVal.(string)
 			if !ok {
-				fmt.Println("Invalid id value in stream message")
+				log.Println("Invalid id value in stream message")
 				continue
 			}
 
 			// Get page from database
 			page, err := db.FetchPage(idStr, PAGE_INSERT_COLLECTION)
 			if err != nil {
-				fmt.Println("Mongo fetch error: ", err)
+				log.Println("Mongo fetch error: ", err)
 				continue
 			}
 
 			// Index Page
-			fmt.Println("Indexing page: ", page.Title)
+			log.Println("Indexing page: ", page.Title)
 			err = idx.IndexPage(idStr, page)
 
 			// acknowledgement of reading
 			_, err = rd.Client.XAck(rd.Ctx, idx.StreamName, idx.GroupName, message.ID).Result()
 			if err != nil {
-				fmt.Println("Failed to ack message: ", err)
+				log.Println("Failed to ack message: ", err)
 			}
 		}
 	}

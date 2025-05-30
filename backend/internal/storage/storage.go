@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/Jailior/open-search/backend/internal/models"
@@ -92,7 +93,7 @@ func (db *Database) FetchPage(idHex string, collectionname string) (*models.Page
 func (db *Database) UpdateTerm(collectionname string, filter bson.M, update bson.M) (*mongo.UpdateResult, error) {
 	collection := db.GetCollection(collectionname)
 	if collection == nil {
-		fmt.Println("Collection with name", collectionname, "not in Database struct")
+		log.Println("Collection with name", collectionname, "not in Database struct")
 		return nil, fmt.Errorf("Collection name not found.")
 	}
 	result, err := collection.UpdateOne(db.ctx, filter, update, options.Update().SetUpsert(true))
@@ -104,7 +105,7 @@ func (db *Database) UpdateTerm(collectionname string, filter bson.M, update bson
 func (db *Database) IncrementDF(collectionname string, filter bson.M) error {
 	collection := db.GetCollection(collectionname)
 	if collection == nil {
-		fmt.Println("Collection with name", collectionname, "not in Database struct")
+		log.Println("Collection with name", collectionname, "not in Database struct")
 		return fmt.Errorf("Collection name not found.")
 	}
 	_, _ = collection.UpdateOne(
