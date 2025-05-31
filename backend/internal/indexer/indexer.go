@@ -2,8 +2,6 @@ package indexer
 
 import (
 	"log"
-	"strings"
-	"unicode"
 
 	"github.com/Jailior/open-search/backend/internal/models"
 	"github.com/Jailior/open-search/backend/internal/parsing"
@@ -23,28 +21,9 @@ type Indexer struct {
 	RedisClient *storage.RedisClient
 }
 
-// returns words and their positions in the text
-func Tokenize(text string) map[string][]int {
-	words := make(map[string][]int)
-
-	// split by whitespace, lowercase and strip puncuation
-	tokens := strings.FieldsFunc(text, func(r rune) bool {
-		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
-	})
-
-	for pos, raw := range tokens {
-		word := strings.ToLower(raw)
-		if parsing.Stopwords[word] || word == "" {
-			continue
-		}
-		words[word] = append(words[word], pos)
-	}
-	return words
-}
-
 // Constructs an inverted index based on page
 func (idx *Indexer) IndexPage(docId string, page *models.PageData) error {
-	terms := Tokenize(page.Title + " " + page.Content)
+	terms := parsing.TokenizeText(page.Title + " " + page.Content)
 	termsLength := float64(len(terms))
 
 	for term, positions := range terms {
@@ -78,6 +57,7 @@ func (idx *Indexer) IndexPage(docId string, page *models.PageData) error {
 			idx.Database.IncrementDF(PAGE_INDEX_COLLECTION, filter)
 		}
 	}
+	idx.Database.IncrementDocCount(PAGE_INDEX_COLLECTION)
 	return nil
 }
 

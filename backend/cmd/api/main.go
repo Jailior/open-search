@@ -15,11 +15,17 @@ func main() {
 
 	db := storage.MakeDB()
 	db.Connect()
+	defer db.Disconnect()
 	db.AddCollection(DB_NAME, COLL_NAME)
+	log.Println("Collection added.")
+
+	db.InitializeIndexCorpus(COLL_NAME)
+
+	svc := &api.SearchService{DB: db, COLL_NAME: COLL_NAME}
 
 	router := gin.Default()
 
-	api.SetUpRouter(router)
+	api.SetUpRouter(router, svc)
 
 	log.Println("Starting API on localhost:8080")
 	err := router.Run(":8080")

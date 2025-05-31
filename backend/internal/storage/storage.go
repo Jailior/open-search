@@ -94,7 +94,8 @@ func (db *Database) UpdateTerm(collectionname string, filter bson.M, update bson
 	collection := db.GetCollection(collectionname)
 	if collection == nil {
 		log.Println("Collection with name", collectionname, "not in Database struct")
-		return nil, fmt.Errorf("Collection name not found.")
+		db.Error = fmt.Errorf("Collection name not found.")
+		return nil, db.Error
 	}
 	result, err := collection.UpdateOne(db.ctx, filter, update, options.Update().SetUpsert(true))
 	return result, err
@@ -106,7 +107,8 @@ func (db *Database) IncrementDF(collectionname string, filter bson.M) error {
 	collection := db.GetCollection(collectionname)
 	if collection == nil {
 		log.Println("Collection with name", collectionname, "not in Database struct")
-		return fmt.Errorf("Collection name not found.")
+		db.Error = fmt.Errorf("Collection name not found.")
+		return db.Error
 	}
 	_, _ = collection.UpdateOne(
 		db.ctx,
@@ -114,4 +116,26 @@ func (db *Database) IncrementDF(collectionname string, filter bson.M) error {
 		bson.M{"$inc": bson.M{"DF": 1}},
 	)
 	return nil
+}
+
+func (db *Database) InitializeIndexCorpus(collectionname string) error {
+	meta := bson.M{
+		"_id":         "corpus_stats",
+		"total_pages": 0,
+	}
+	_, db.Error = db.collection[collectionname].InsertOne(db.ctx, meta)
+	return db.Error
+}
+
+func (db *Database) TotalDocCount(collectionname string) (int, error) {
+	var result struct {
+		TotalDocCount int `bson:"total_pages"`
+	}
+	err := db.collection[collectionname].FindOne(db.ctx, bson.M{"_id": "corpus_stats"}).Decode(&result)
+	return result.TotalDocCount, err
+}
+
+func (db *Database) IncrementDocCount(collectionname string) error {
+	_, err := db.collection[collectionname].UpdateByID(db.ctx, "corpus_stats", bson.M{"$inc": bson.M{"total_pages": 1}})
+	return err
 }

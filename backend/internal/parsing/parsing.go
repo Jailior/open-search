@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"unicode"
 
 	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/net/html"
@@ -110,4 +111,41 @@ func CleanText(doc *goquery.Selection) string {
 
 	text := strings.Join(strings.Fields(sb.String()), " ")
 	return text
+}
+
+// returns words and their positions in the text
+func TokenizeText(text string) map[string][]int {
+	words := make(map[string][]int)
+
+	// split by whitespace, lowercase and strip puncuation
+	tokens := strings.FieldsFunc(text, func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	})
+
+	for pos, raw := range tokens {
+		word := strings.ToLower(raw)
+		if Stopwords[word] || word == "" {
+			continue
+		}
+		words[word] = append(words[word], pos)
+	}
+	return words
+}
+
+func TokenizeQuery(query string) []string {
+	var terms []string
+
+	// split by whitespace, lowercase and strip puncuation
+	tokens := strings.FieldsFunc(query, func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	})
+
+	for _, raw := range tokens {
+		word := strings.ToLower(raw)
+		if Stopwords[word] || word == "" {
+			continue
+		}
+		terms = append(terms, word)
+	}
+	return terms
 }

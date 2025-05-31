@@ -16,9 +16,11 @@ func main() {
 	rd := storage.MakeRedisClient()
 	db := storage.MakeDB()
 	db.Connect()
+	defer db.Disconnect()
+
 	db.AddCollection(indexer.DB_NAME, indexer.PAGE_INSERT_COLLECTION)
 	db.AddCollection(indexer.DB_NAME, indexer.PAGE_INDEX_COLLECTION)
-	defer db.Disconnect()
+	db.InitializeIndexCorpus(indexer.PAGE_INDEX_COLLECTION)
 
 	idx := &indexer.Indexer{
 		Database:    db,
