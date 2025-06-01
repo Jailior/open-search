@@ -8,20 +8,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const DB_NAME = "opensearch"
-const COLL_NAME = "inverted_index"
-
 func main() {
 
 	db := storage.MakeDB()
 	db.Connect()
 	defer db.Disconnect()
-	db.AddCollection(DB_NAME, COLL_NAME)
-	log.Println("Collection added.")
+	db.AddCollection(api.DB_NAME, api.COLL_NAME)
+	db.AddCollection(api.DB_NAME, "pages")
 
-	db.InitializeIndexCorpus(COLL_NAME)
+	db.InitializeIndexCorpus(api.COLL_NAME)
 
-	svc := &api.SearchService{DB: db, COLL_NAME: COLL_NAME}
+	svc := &api.SearchService{DB: db}
 
 	router := gin.Default()
 

@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// MongoDB Database interface
+// MongoDB Database Interface
 // Currently supports only on DB Name and Collection
 type Database struct {
 	client     *mongo.Client
@@ -68,7 +68,7 @@ func (db *Database) GetCollection(collectionname string) *mongo.Collection {
 
 // Inserts a PageData page as a document in collection
 func (db *Database) InsertRawPage(pd *models.PageData, collectionname string) (string, error) {
-	res, err := db.collection[collectionname].InsertOne(db.ctx, *pd)
+	res, err := db.GetCollection(collectionname).InsertOne(db.ctx, *pd)
 	db.Error = err
 	if err != nil {
 		return "", err
@@ -77,7 +77,7 @@ func (db *Database) InsertRawPage(pd *models.PageData, collectionname string) (s
 }
 
 // Fetches a page with doc _id idHex from the collection
-func (db *Database) FetchPage(idHex string, collectionname string) (*models.PageData, error) {
+func (db *Database) FetchRawPage(idHex string, collectionname string) (*models.PageData, error) {
 	id, err := primitive.ObjectIDFromHex(idHex)
 	if err != nil {
 		return nil, err
@@ -86,6 +86,15 @@ func (db *Database) FetchPage(idHex string, collectionname string) (*models.Page
 	var result models.PageData
 	err = db.collection[collectionname].FindOne(db.ctx, bson.M{"_id": id}).Decode(&result)
 	return &result, err
+}
+
+func (db *Database) FetchPostings(term string, collectionname string) (*models.TermEntry, error) {
+	var result models.TermEntry
+	err := db.collection[collectionname].FindOne(db.ctx, bson.M{"term": term}).Decode(&result)
+	if err != nil || result.DF == 0 {
+		return nil, err
+	}
+	return &result, nil
 }
 
 // Updates a term in the collection based on a filter and update bson.M
@@ -118,6 +127,7 @@ func (db *Database) IncrementDF(collectionname string, filter bson.M) error {
 	return nil
 }
 
+// Initalizes a corpus stats document in collection
 func (db *Database) InitializeIndexCorpus(collectionname string) error {
 	meta := bson.M{
 		"_id":         "corpus_stats",
@@ -127,6 +137,7 @@ func (db *Database) InitializeIndexCorpus(collectionname string) error {
 	return db.Error
 }
 
+// Returns the total_pages in corpus stats
 func (db *Database) TotalDocCount(collectionname string) (int, error) {
 	var result struct {
 		TotalDocCount int `bson:"total_pages"`
@@ -135,6 +146,7 @@ func (db *Database) TotalDocCount(collectionname string) (int, error) {
 	return result.TotalDocCount, err
 }
 
+// Increments the total_pages in corpus stats
 func (db *Database) IncrementDocCount(collectionname string) error {
 	_, err := db.collection[collectionname].UpdateByID(db.ctx, "corpus_stats", bson.M{"$inc": bson.M{"total_pages": 1}})
 	return err

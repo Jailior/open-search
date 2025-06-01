@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+/* Crawler Models*/
 // Key data points stored per page
 type PageData struct {
 	URL         string
@@ -20,11 +21,6 @@ func PrintPage(pd PageData) {
 	log.Println("Title: ", pd.Title)
 	log.Println("URL: ", pd.URL)
 	log.Println("# of Outlinks: ", len(pd.Outlinks))
-}
-
-// Redis Indexer Queue Message type
-type IndexerQueueMessage struct {
-	ID string `json:"id"` // mongodb hex _id string
 }
 
 // Thread-safe FIFO Queue
@@ -106,3 +102,25 @@ func (s *Set) Has(url string) bool {
 }
 
 // No need for Remove function
+
+/* Indexer Models */
+
+// Redis Indexer Queue Message type
+type IndexerQueueMessage struct {
+	ID string `json:"id"` // mongodb hex _id string
+}
+
+// Information stored for a posting in a term document
+type IndexerPosting struct {
+	DocID     string  `bson:"doc_id"`
+	Title     string  `bson:"title"`
+	URL       string  `bson:"url"`
+	TF        float64 `bson:"TF"`
+	Positions []int   `bson:"positions"`
+}
+
+// Information representing a term document in database
+type TermEntry struct {
+	DF       int              `bson:"df"`
+	Postings []IndexerPosting `bson:"postings"`
+}

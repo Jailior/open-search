@@ -1,23 +1,26 @@
-package models
+package stats
 
 import (
-	"encoding/json"
+	"context"
 	"log"
-	"os"
 	"sync"
 	"time"
+
+	"github.com/Jailior/open-search/backend/internal/storage"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Crawler statistics, thread-safe
 type CrawlerStats struct {
-	PagesCrawled      []uint32
-	QueueSize         []int
-	PagesSkippedErr   int
-	PagesSkippedLang  int
-	DuplicatesAvoided int
-	LastUpdated       time.Time
-	mu                sync.Mutex
-	stopChan          chan struct{}
+	PagesCrawled      []uint32      `bson:"pages_crawled"`
+	QueueSize         []int         `bson:"queue_size"`
+	PagesSkippedErr   int           `bson:"page_errs"`
+	PagesSkippedLang  int           `bson:"pages_skipped_lang"`
+	DuplicatesAvoided int           `bson:"duplicates_avoided"`
+	LastUpdated       time.Time     `bson:"-"`
+	mu                sync.Mutex    `bson:"-"`
+	stopChan          chan struct{} `bson:"-"`
 
 	currentQLength      int
 	currentPagesVisited int
@@ -39,7 +42,7 @@ func MakeCrawlerStats() *CrawlerStats {
 }
 
 // Background writer, writes to filename every interval with updated JSON object for crawler stats
-func (stats *CrawlerStats) StartWriter(interval time.Duration, filename string) {
+func (stats *CrawlerStats) StartWriter(interval time.Duration, db *storage.Database) {
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
@@ -51,21 +54,23 @@ func (stats *CrawlerStats) StartWriter(interval time.Duration, filename string) 
 
 				stats.PagesCrawled = append(stats.PagesCrawled, uint32(stats.currentPagesVisited))
 				stats.QueueSize = append(stats.QueueSize, stats.currentQLength)
-
 				stats.LastUpdated = time.Now()
 
-				// write to json file
-				jsonData, err := json.MarshalIndent(stats, "", "  ")
+				saved_stats := *stats
 				stats.mu.Unlock()
+
+				filter := bson.M{"_id": "crawler_stats"}
+				update := bson.M{"$set": saved_stats}
+
+				opts := options.Update().SetUpsert(true)
+
+				_, err := db.GetCollection("pages").UpdateOne(context.Background(), filter, update, opts)
+
 				if err != nil {
-					log.Println("Error serializing CrawlerStats:", err)
+					log.Println("Failed to write CrawlerStats to MongoDB:", err)
 					continue
 				}
 
-				err = os.WriteFile(filename, jsonData, 0644)
-				if err != nil {
-					log.Println("Error writing to stats file: ", err)
-				}
 			case <-stats.stopChan:
 				return
 			}

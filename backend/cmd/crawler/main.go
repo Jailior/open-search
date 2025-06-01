@@ -5,6 +5,7 @@ import (
 
 	"github.com/Jailior/open-search/backend/internal/crawler"
 	"github.com/Jailior/open-search/backend/internal/models"
+	"github.com/Jailior/open-search/backend/internal/stats"
 	"github.com/Jailior/open-search/backend/internal/storage"
 )
 
@@ -22,8 +23,8 @@ func main() {
 	defer db.Disconnect()
 
 	// initialize statistics struct
-	stats := models.MakeCrawlerStats()
-	stats.StartWriter(1*time.Minute, "stats.json")
+	stats := stats.MakeCrawlerStats()
+	stats.StartWriter(1*time.Minute, db)
 	defer stats.StopWriter()
 
 	// initialize queue and set

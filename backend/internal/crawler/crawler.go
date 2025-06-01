@@ -7,6 +7,7 @@ import (
 
 	"github.com/Jailior/open-search/backend/internal/models"
 	"github.com/Jailior/open-search/backend/internal/parsing"
+	"github.com/Jailior/open-search/backend/internal/stats"
 	"github.com/Jailior/open-search/backend/internal/storage"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/abadojack/whatlanggo"
@@ -26,7 +27,7 @@ type CrawlContext struct {
 	Queue      *models.URLQueue
 	VisitedSet *models.Set
 	Database   *storage.Database
-	Stats      *models.CrawlerStats
+	Stats      *stats.CrawlerStats
 	Redis      *storage.RedisClient
 	Err        error
 }

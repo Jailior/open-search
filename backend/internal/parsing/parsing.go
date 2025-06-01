@@ -117,18 +117,24 @@ func CleanText(doc *goquery.Selection) string {
 func TokenizeText(text string) map[string][]int {
 	words := make(map[string][]int)
 
-	// split by whitespace, lowercase and strip puncuation
-	tokens := strings.FieldsFunc(text, func(r rune) bool {
+	allTokens := strings.FieldsFunc(text, func(r rune) bool {
 		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
 	})
 
-	for pos, raw := range tokens {
+	tokenIndex := 0
+	for _, raw := range allTokens {
 		word := strings.ToLower(raw)
-		if Stopwords[word] || word == "" {
+		if word == "" {
 			continue
 		}
-		words[word] = append(words[word], pos)
+
+		// only track non-stopwords
+		if !Stopwords[word] {
+			words[word] = append(words[word], tokenIndex)
+		}
+		tokenIndex++
 	}
+
 	return words
 }
 
@@ -148,4 +154,24 @@ func TokenizeQuery(query string) []string {
 		terms = append(terms, word)
 	}
 	return terms
+}
+
+func SplitWords(text string) []string {
+	var words []string
+
+	allTokens := strings.FieldsFunc(text, func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	})
+
+	for _, raw := range allTokens {
+		word := strings.ToLower(raw)
+		if word == "" {
+			continue
+		}
+
+		words = append(words, raw)
+	}
+
+	return words
+
 }

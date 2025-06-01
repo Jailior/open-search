@@ -8,6 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// Redis interface
 type RedisClient struct {
 	Client *redis.Client
 	Ctx    context.Context
@@ -34,7 +35,7 @@ func (r *RedisClient) PushToStream(stream string, key string, value string) erro
 	return err
 }
 
-// Reads a key value pair from a stream
+// Reads a key value pair from a stream and acknowledges read
 func (r *RedisClient) ReadAckStream(streamName string, group string, consumerName string) ([]redis.XStream, error) {
 	entries, err := r.Client.XReadGroup(r.Ctx, &redis.XReadGroupArgs{
 		Group:    group,

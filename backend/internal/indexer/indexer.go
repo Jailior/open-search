@@ -30,11 +30,12 @@ func (idx *Indexer) IndexPage(docId string, page *models.PageData) error {
 		termFreq := float64(len(positions)) / termsLength
 		filter := bson.M{"term": term}
 
-		posting := bson.M{
-			"doc_id":    docId,
-			"url":       page.URL,
-			"TF":        termFreq,
-			"positions": positions,
+		posting := models.IndexerPosting{
+			DocID:     docId,
+			Title:     page.Title,
+			URL:       page.URL,
+			TF:        termFreq,
+			Positions: positions,
 		}
 
 		update := bson.M{
@@ -77,7 +78,7 @@ func (idx *Indexer) ProcessEntries(entries []redis.XStream) {
 			}
 
 			// Get page from database
-			page, err := db.FetchPage(idStr, PAGE_INSERT_COLLECTION)
+			page, err := db.FetchRawPage(idStr, PAGE_INSERT_COLLECTION)
 			if err != nil {
 				log.Println("Mongo fetch error: ", err)
 				continue
