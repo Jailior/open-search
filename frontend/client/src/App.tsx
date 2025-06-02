@@ -1,47 +1,36 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+  import SearchPage from "./SearchPage";
 
-// function App() {
-//   const [count, setCount] = useState(0)
+  function App() {
+    return (
+      <div className="min-h-screen flex flex-col bg-white text-gray-900">
 
-//   return (
-//     <>
-//       <div>
-//         <a href="https://vite.dev" target="_blank">
-//           <img src={viteLogo} className="logo" alt="Vite logo" />
-//         </a>
-//         <a href="https://react.dev" target="_blank">
-//           <img src={reactLogo} className="logo react" alt="React logo" />
-//         </a>
-//       </div>
-//       <h1>Vite + React</h1>
-//       <div className="card">
-//         <button onClick={() => setCount((count) => count + 1)}>
-//           count is {count}
-//         </button>
-//         <p>
-//           Edit <code>src/App.tsx</code> and save to test HMR
-//         </p>
-//       </div>
-//       <p className="read-the-docs">
-//         Click on the Vite and React logos to learn more
-//       </p>
-//     </>
-//   )
-// }
+        <main className="flex-grow flex flex-col justify-center">
+          <SearchPage />
+        </main>
 
-// export default App
+        <footer className="bg-white text-center text-sm text-black-eerie py-4">
+          Powered by{" "}
+          <span className="font-semibold text-green-reseda">Ali Osman</span> • {" "}
+          <a
+            href="https://github.com/Jailior/open-search"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline text-green-reseda hover:text-green-celadon-50"
+          >
+            GitHub
+          </a>{" "}
+          |{" "}
+          <a
+            href="https://linkedin.com/in/ali-osman1"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline text-green-reseda hover:text-green-celadon-50"
+          >
+            LinkedIn
+          </a>
+        </footer>
+      </div>
+    );
+  }
 
-import SearchPage from "./SearchPage";
-
-function App() {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <SearchPage />
-    </div>
-  );
-}
-
-export default App
+  export default App;

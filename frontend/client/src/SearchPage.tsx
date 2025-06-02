@@ -1,83 +1,180 @@
 import { useEffect, useState } from "react";
-import { searchQuery } from "./api";
+import { LuSearchCheck } from "react-icons/lu";
 
-interface Result {
-  doc_id: string;
-  title: string;
-  url: string;
-  snippet: string;
-  score: number;
-}
+import styles from "./SearchPage.module.css"
+import { fetchMetrics, searchQuery } from "./api";
+import ResultCard, { type Result } from "./ResultCard";
+import MetricsCard, {type Metrics } from "./MetricsCard";
+
 
 export default function SearchPage() {
   const [query, setQuery] = useState("");
+  const [hasSearched, setHasSearched] = useState(false);
+
   const [results, setResults] = useState<Result[]>([]);
+  const [metrics, setMetrics] = useState<Metrics>();
+  const [showMetrics, setShowMetrics] = useState(false);
+
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
-  const limit = 10;
+  const limit = 20;
 
   const handleSearch = async () => {
     const data = await searchQuery(query, offset, limit);
     setResults(data.results);
     setTotal(data.totalResults);
+    setHasSearched(true);
+    setShowMetrics(false);
   };
+
+  const handleMetrics = async () => {
+    const data = await fetchMetrics();
+    setMetrics(data.metrics);
+    setShowMetrics(true);
+  }
 
   useEffect(() => {
     if (query) handleSearch();
   }, [offset]);
 
+  useEffect(() => {
+  if (query === "") {
+    setHasSearched(false);
+    setResults([]);
+    setTotal(0);
+    setOffset(0);
+  }
+}, [query]);
+
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Open Search</h1>
+    <div
+    className={`${styles.container} ${
+    hasSearched ? "items-start pt-12 ml-20" : "items-center justify-center"
+    }
+    ${
+        (hasSearched && total == 0) ? "min-h-screen" : ""
+    } 
+    flex flex-col transition-all duration-200`}
+    >
+    
+      {/* Title */}
+      <h1 
+        className={`${styles.title} ${hasSearched ? styles.titleSmall : styles.titleLarge}`}
+        onClick={() => {
+            setQuery("");
+            setHasSearched(false);
+            setOffset(0);
+            setResults([]);
+            setTotal(0);
+            setShowMetrics(false);
+        }}
+      >
+        <LuSearchCheck className="inline text-green-reseda" /> 
+        Open<span className="text-green-reseda">Search</span>
+        </h1>
 
-      <div className="flex mb-6">
-        <input
-          className="border border-gray-300 rounded-l px-4 py-2 w-full"
-          placeholder="Search..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-        />
-        <button
-          className="bg-blue-600 text-white px-4 py-2 rounded-r"
-          onClick={handleSearch}
+      {/* Search Bar */}
+      {!showMetrics && (
+        <div className={styles.searchBar}>
+            <input
+            className={`${styles.input} w-full transition-all duration-300`}
+            placeholder="Search..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            />
+
+            {hasSearched && (
+            <button
+            className={`${styles.button} ml-4`}
+            onClick={handleSearch}
+            >
+            Search
+            </button>
+            )}
+        </div>
+      )}
+
+      {/* Buttons below input */}
+      {!hasSearched && !showMetrics && (
+      <>
+        <div className="flex space-x-4 mb-8 justify-center">
+            <button
+            className={styles.button}
+            onClick={handleSearch}
+            >
+            Search
+            </button>
+            <button
+            className={styles.button}
+            onClick={handleMetrics}
+            >
+            Look at these!
+            </button>
+        </div>
+            <div>
+                <p className={`${styles.factText} mt-10`}>Search from ~1,000 webpages!</p>
+        </div>
+      </>
+      )}
+
+      
+      {/* Total results found and results list */}
+        <div
+            className={`transition-opacity ${hasSearched && (total != 0) ? "opacity-100" : "opacity-0" }`}
         >
-          Search
-        </button>
-      </div>
+        <p className={`${styles.totalResults} duration-0`}>Showing {total} results for {query}</p>
+        
+        <div className={`${styles.resultList} duration-500`}>
+                {results.map((r) => (
+                    <ResultCard key={r.doc_id} result={r} />
+                ))}
+            </div>
+        </div>
 
-      <p className="mb-2 text-gray-500">{total} results</p>
+    {/* Metrics */}
+    {metrics && !hasSearched && showMetrics && (
+        <div
+            className={`transition-opacity duration-500 ${showMetrics ? "opacity-100" : "opacity-0 invisible"}`}
+        >
+            <div className={styles.resultList}>
+            <MetricsCard metrics={metrics} />
+            </div>
+        </div>
+    )}
 
-      <div className="space-y-6">
-        {results.map((r) => (
-          <div key={r.doc_id} className="border-b pb-4">
-            <a href={r.url} className="text-lg text-blue-600 font-medium hover:underline" target="_blank">
-              {r.title || r.url}
-            </a>
-            <p className="text-sm text-gray-500">{r.url}</p>
-            <p className="text-gray-800 mt-1">{r.snippet}</p>
-            <p className="text-xs text-gray-400 mt-1">Score: {r.score.toFixed(4)}</p>
-          </div>
-        ))}
-      </div>
+    {/* No results found block */}
+    <div
+        className={`transition-opacity duration-500 ${hasSearched && (total == 0)? "opacity-100" : "opacity-0" }`}
+    >
+        <p className={`${styles.totalResults}`}> No matching results T-T</p>
+    </div>
 
-      {/* Pagination */}
-      <div className="flex justify-between mt-6">
+    {/* Pagination */}
+    {(hasSearched && (total != 0)) && (
+      <div className={styles.pagination}>
         <button
-          onClick={() => setOffset(Math.max(0, offset - limit))}
+          onClick={() => {
+            setOffset(Math.max(0, offset - limit));
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
           disabled={offset === 0}
-          className="bg-gray-200 px-4 py-2 rounded disabled:opacity-50"
+          className={styles.pageButton}
         >
           Previous
         </button>
         <button
-          onClick={() => setOffset(offset + limit)}
+          onClick={() => {
+            setOffset(offset + limit);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
           disabled={offset + limit >= total}
-          className="bg-gray-200 px-4 py-2 rounded disabled:opacity-50"
+          className={`${styles.pageButton} ml-3`}
         >
           Next
         </button>
       </div>
+    )}
     </div>
   );
 }
