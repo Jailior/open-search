@@ -51,7 +51,7 @@ const MetricsCard: React.FC<Props> = ({ metrics }) => {
         </div>
         <div className={styles.factText}>
           <FaStar className="inline text-yellow-500 mr-2" /> 
-          <strong>Support the project on GitHub and LinkedIn!</strong>
+          <strong>Support the project on GitHub!</strong>
         </div>
       </div>
     </div>

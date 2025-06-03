@@ -13,7 +13,7 @@ import (
 
 /* Helper Functions */
 
-func getSnippet(positions []int, text string) string {
+func getSnippet(positions []int, text string, term string) string {
 	if len(text) == 0 || len(positions) == 0 {
 		return ""
 	}
@@ -25,6 +25,14 @@ func getSnippet(positions []int, text string) string {
 	end := min(len(words), pos+10)
 
 	snippetWords := words[start:end]
+
+	// highlight/bold term
+	for i, word := range snippetWords {
+		if strings.EqualFold(word, term) {
+			snippetWords[i] = "<strong>" + word + "</strong>"
+		}
+	}
+
 	snippet := strings.Join(snippetWords, " ")
 
 	if len(snippet) > 0 {

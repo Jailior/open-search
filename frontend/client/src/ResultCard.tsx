@@ -26,7 +26,7 @@ const ResultCard: React.FC<Props> = ({ result }) => {
         {result.title || result.url}
       </a>
       <p className={styles.resultURL}>{result.url}</p>
-      <p className={styles.resultSnippet}>{result.snippet}</p>
+      <p className={styles.resultSnippet}><div dangerouslySetInnerHTML={{__html: result.snippet}}></div></p>
     </div>
     );
 };

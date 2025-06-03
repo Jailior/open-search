@@ -5,6 +5,7 @@ import styles from "./SearchPage.module.css"
 import { fetchMetrics, searchQuery } from "./api";
 import ResultCard, { type Result } from "./ResultCard";
 import MetricsCard, {type Metrics } from "./MetricsCard";
+import { FaAngleLeft } from "react-icons/fa";
 
 
 export default function SearchPage() {
@@ -17,7 +18,7 @@ export default function SearchPage() {
 
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
-  const limit = 20;
+  const limit = 15;
 
   const handleSearch = async () => {
     const data = await searchQuery(query, offset, limit);
@@ -58,24 +59,26 @@ export default function SearchPage() {
     >
     
       {/* Title */}
-      <h1 
-        className={`${styles.title} ${hasSearched ? styles.titleSmall : styles.titleLarge}`}
-        onClick={() => {
-            setQuery("");
-            setHasSearched(false);
-            setOffset(0);
-            setResults([]);
-            setTotal(0);
-            setShowMetrics(false);
-        }}
-      >
-        <LuSearchCheck className="inline text-green-reseda" /> 
-        Open<span className="text-green-reseda">Search</span>
-        </h1>
+      <div className="sticky top-0 z-10 bg-transparent">
+        <h1 
+          className={`${styles.title} ${hasSearched ? styles.titleSmall : styles.titleLarge}`}
+          onClick={() => {
+              setQuery("");
+              setHasSearched(false);
+              setOffset(0);
+              setResults([]);
+              setTotal(0);
+              setShowMetrics(false);
+          }}
+        >
+          <LuSearchCheck className="inline text-green-reseda" /> 
+          Open<span className="text-green-reseda">Search</span>
+          </h1>
+        </div>
 
       {/* Search Bar */}
       {!showMetrics && (
-        <div className={styles.searchBar}>
+        <div className={`${styles.searchBar} sticky top-16 z-10 bg-transparent`}>
             <input
             className={`${styles.input} w-full transition-all duration-300`}
             placeholder="Search..."
@@ -134,13 +137,23 @@ export default function SearchPage() {
 
     {/* Metrics */}
     {metrics && !hasSearched && showMetrics && (
-        <div
-            className={`transition-opacity duration-500 ${showMetrics ? "opacity-100" : "opacity-0 invisible"}`}
-        >
-            <div className={styles.resultList}>
-            <MetricsCard metrics={metrics} />
-            </div>
-        </div>
+        <>
+        <div className="w-full max-w-4xl mx-auto">
+          <button className={`${styles.backButton} mb-0 ml-36`}
+            onClick={() => {
+              setShowMetrics(false);
+            }}>
+            <FaAngleLeft></FaAngleLeft>
+          </button>
+          </div>
+          <div
+              className={`transition-opacity duration-500 ${showMetrics ? "opacity-100" : "opacity-0 invisible"}`}
+          >
+              <div className={styles.resultList}>
+              <MetricsCard metrics={metrics} />
+              </div>
+          </div>
+        </>
     )}
 
     {/* No results found block */}

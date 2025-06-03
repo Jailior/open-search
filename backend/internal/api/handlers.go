@@ -20,11 +20,11 @@ type SearchService struct {
 
 // Returned struct by API, representing a page
 type DocScore struct {
-	DocID   string
-	Title   string
-	URL     string
-	Snippet string
-	Score   float64
+	DocID   string  `json:"doc_id"`
+	Title   string  `json:"title"`
+	URL     string  `json:"url"`
+	Snippet string  `json:"snippet"`
+	Score   float64 `json:"score"`
 }
 
 func HealthCheck(c *gin.Context) {
@@ -66,7 +66,7 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 			tfIdf := posting.TF * idf
 			if _, ok := scores[posting.DocID]; !ok {
 				page, _ := svc.DB.FetchRawPage(posting.DocID, "pages")
-				snippet := getSnippet(posting.Positions, page.Content)
+				snippet := getSnippet(posting.Positions, page.Content, term)
 				scores[posting.DocID] = &DocScore{
 					DocID:   posting.DocID,
 					Title:   posting.Title,
@@ -113,12 +113,12 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 func (svc *SearchService) MetricsHandler(c *gin.Context) {
 
 	var crawlerStats struct {
-		PagesCrawled      []uint32 `bson:"pages_crawled"`
-		QueueSize         []int    `bson:"queue_size"`
-		PagesSkippedErr   int      `bson:"page_errs"`
-		PagesSkippedLang  int      `bson:"pages_skipped_lang"`
-		DuplicatesAvoided int      `bson:"duplicates_avoided"`
-		NumberOfSearchs   int      `bson:"number_of_searches"`
+		PagesCrawled      []uint32 `bson:"pages_crawled" json:"pages_crawled"`
+		QueueSize         []int    `bson:"queue_size" json:"queue_size"`
+		PagesSkippedErr   int      `bson:"page_errs" json:"page_errs"`
+		PagesSkippedLang  int      `bson:"pages_skipped_lang" json:"pages_skipped_lang"`
+		DuplicatesAvoided int      `bson:"duplicates_avoided" json:"duplicates_avoided"`
+		NumberOfSearchs   int      `bson:"number_of_searches" json:"number_of_searches"`
 	}
 
 	err := svc.DB.GetCollection("pages").FindOne(context.Background(), bson.M{"_id": "crawler_stats"}).Decode(&crawlerStats)

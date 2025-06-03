@@ -44,7 +44,7 @@
 }
 
 .metricsItem {
-  @apply text-center mx-auto bg-white shadow rounded-xl px-6 py-8 w-full max-w-xl;
+  @apply text-center mx-auto bg-white rounded-xl px-6 py-8 w-full max-w-xl;
 }
 
 .factText {
@@ -68,9 +68,13 @@
 }
 
 .pageButton {
-  @apply bg-green-celadon-100 px-4 py-2 rounded hover:bg-green-celadon-50 transition disabled:opacity-50 text-black-eerie;
+  @apply bg-green-celadon-100 px-4 py-2 rounded hover:bg-green-celadon-50 hover:border-green-reseda transition disabled:opacity-50 text-black-eerie;
 }
 
 .metricsItem {
   @apply rounded p-4 transition;
+}
+
+.backButton {
+  @apply bg-white font-semibold hover:text-black-eerie rounded hover:bg-white border-0 hover:border-0 transition disabled:opacity-50 text-zinc-500;
 }

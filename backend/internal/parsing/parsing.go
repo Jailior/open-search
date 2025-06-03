@@ -153,6 +153,18 @@ func TokenizeQuery(query string) []string {
 		}
 		terms = append(terms, word)
 	}
+
+	// if query only consists of stop word(s)
+	if len(terms) == 0 {
+		for _, raw := range tokens {
+			word := strings.ToLower(raw)
+			if word == "" {
+				continue
+			}
+			terms = append(terms, word)
+		}
+	}
+
 	return terms
 }
 
