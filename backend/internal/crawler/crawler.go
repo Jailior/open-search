@@ -1,8 +1,10 @@
 package crawler
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/Jailior/open-search/backend/internal/models"
@@ -22,28 +24,52 @@ const PAGE_INSERT_COLLECTION = "pages"
 
 const REDIS_INDEX_QUEUE = "pages_to_index"
 
+const REDIS_URL_QUEUE = "url_queue"
+const REDIS_VISITED_SET = "visited_set"
+
 // Crawler context passed to HTML handler and others
 type CrawlContext struct {
-	Queue      *models.URLQueue
-	VisitedSet *models.Set
-	Database   *storage.Database
-	Stats      *stats.CrawlerStats
-	Redis      *storage.RedisClient
-	Err        error
+	Database *storage.Database
+	Stats    *stats.CrawlerStats
+	Redis    *storage.RedisClient
+	Err      error
 }
 
-func StartCrawler(seedURL string, ctx *CrawlContext) {
+func StartCrawler(seeds []string, ctx *CrawlContext, workerCount int, cancelContext context.Context) {
+	// enqueue seed URLs
+	for _, url := range seeds {
+		ctx.Redis.EnqueueList(url, REDIS_URL_QUEUE, REDIS_VISITED_SET)
+	}
+
+	length, _ := ctx.Redis.Client.LLen(ctx.Redis.Ctx, REDIS_URL_QUEUE).Result()
+	fmt.Println("URL queue length:", length)
+
+	time.Sleep(100 * time.Millisecond)
+
+	var wg sync.WaitGroup
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+			runCrawler(ctx, workerID, cancelContext)
+		}(i)
+	}
+
+	wg.Wait()
+	log.Println("All workers shut down.")
+}
+
+func runCrawler(ctx *CrawlContext, workerID int, cancelCtx context.Context) {
 	var err error
 
-	q := ctx.Queue
-	visited := ctx.VisitedSet
 	stats := ctx.Stats
+	rdb := ctx.Redis
 
 	// intial colly scraper
 	c := colly.NewCollector()
 	err = c.Limit(&colly.LimitRule{
 		DomainGlob:  "*",
-		Parallelism: 2,
+		Parallelism: 1,
 		Delay:       0 * time.Second,
 		RandomDelay: 0 * time.Second,
 	})
@@ -57,23 +83,40 @@ func StartCrawler(seedURL string, ctx *CrawlContext) {
 	// Processes page contents
 	c.OnHTML("html", handler)
 
-	// enqueue seedURL
-	q.Enqueue(seedURL)
+	log.Printf("[Worker %d] started\n", workerID)
 
 	// bfs crawling
-	for !q.IsEmpty() {
-		url, ok := q.Dequeue()
-		if !ok {
-			break
-		}
-		if visited.Has(url) {
-			stats.IncrementSkippedDupe()
-			continue
-		}
-		c.Visit(url)
-		visited.Add(url)
-		if ctx.Err == nil {
-			stats.PageVisit(q.Length())
+	for {
+		select {
+		// shutdown
+		case <-cancelCtx.Done():
+			log.Printf("Worker [%d] received shutdown signal\n", workerID)
+			return
+		default:
+			// dequeue
+			url, err := rdb.DequeueList(REDIS_URL_QUEUE)
+			if err != nil {
+				log.Printf("[Worker %d] Queue pop error: %v\n", workerID, err)
+				continue
+			}
+
+			// check for duplicates
+			if rdb.SetHas(url, REDIS_VISITED_SET) {
+				stats.IncrementSkippedDupe()
+				continue
+			}
+
+			// visit page
+			err = c.Visit(url)
+			if err != nil {
+				log.Printf("[Worker %d] Failed to visit page.\n", workerID)
+			}
+
+			// log stats
+			rdb.SetAdd(url, REDIS_VISITED_SET)
+			if ctx.Err == nil {
+				stats.PageVisit()
+			}
 		}
 	}
 }
@@ -82,7 +125,6 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 
 	return func(e *colly.HTMLElement) {
 		// reassign context variables
-		q := ctx.Queue
 		db := ctx.Database
 		stats := ctx.Stats
 		rdc := ctx.Redis
@@ -142,7 +184,7 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 			}
 			if abs_href != "" {
 				outlinks = append(outlinks, abs_href)
-				q.Enqueue(abs_href)
+				rdc.EnqueueList(abs_href, REDIS_URL_QUEUE, REDIS_VISITED_SET)
 			}
 		})
 

@@ -2,8 +2,10 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -22,8 +24,14 @@ func MakeRedisClient() *RedisClient {
 	})
 	return &RedisClient{
 		Client: rdb,
-		Ctx:    context.Background(),
+		Ctx:    context.TODO(),
 	}
+}
+
+func (r *RedisClient) ResetQueueAndSet(queueName, setName string) {
+	r.Client.Del(r.Ctx, queueName)
+	r.Client.Del(r.Ctx, setName)
+	log.Println("Reset Redis queue and set")
 }
 
 // Pushes a key value pair to a stream
@@ -36,7 +44,7 @@ func (r *RedisClient) PushToStream(stream string, key string, value string) erro
 }
 
 // Reads a key value pair from a stream and acknowledges read
-func (r *RedisClient) ReadAckStream(streamName string, group string, consumerName string) ([]redis.XStream, error) {
+func (r *RedisClient) ReadStream(streamName string, group string, consumerName string) ([]redis.XMessage, error) {
 	entries, err := r.Client.XReadGroup(r.Ctx, &redis.XReadGroupArgs{
 		Group:    group,
 		Consumer: consumerName,
@@ -50,5 +58,41 @@ func (r *RedisClient) ReadAckStream(streamName string, group string, consumerNam
 		return nil, err
 	}
 
-	return entries, nil
+	if len(entries) == 0 || len(entries[0].Messages) == 0 {
+		return nil, fmt.Errorf("Error reading from stream, internal")
+	}
+
+	return entries[0].Messages, nil
+}
+
+// Enqueues url to list if url is not in set
+func (r *RedisClient) EnqueueList(url, listName, setName string) {
+	err := r.Client.RPush(r.Ctx, listName, url).Err()
+	if err != nil {
+		log.Printf("Failed to enqueue page to list: %v\n", err)
+	}
+}
+
+// Dequeues url from list
+func (r *RedisClient) DequeueList(listName string) (string, error) {
+	ctx, cancel := context.WithTimeout(r.Ctx, 5*time.Second)
+	defer cancel()
+
+	url, err := r.Client.BLPop(ctx, 5*time.Second, listName).Result()
+	if err == redis.Nil || len(url) < 2 {
+		return "", err
+	}
+	if err != nil {
+		return "", fmt.Errorf("Redis BLPop error: %w", err)
+	}
+	return url[1], nil
+}
+
+func (r *RedisClient) SetAdd(url, setName string) {
+	r.Client.SAdd(r.Ctx, setName, url)
+}
+
+func (r *RedisClient) SetHas(url, setName string) bool {
+	exists, _ := r.Client.SIsMember(r.Ctx, setName, url).Result()
+	return exists
 }

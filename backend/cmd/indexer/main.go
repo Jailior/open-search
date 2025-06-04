@@ -30,12 +30,12 @@ func main() {
 	}
 
 	for {
-		entries, err := rd.ReadAckStream(idx.StreamName, idx.GroupName, REDIS_CONSUMER_NAME)
+		messages, err := rd.ReadStream(idx.StreamName, idx.GroupName, REDIS_CONSUMER_NAME)
 		if err != nil {
 			time.Sleep(1 * time.Second)
 			continue
 		}
 
-		idx.ProcessEntries(entries)
+		idx.ProcessEntries(messages)
 	}
 }

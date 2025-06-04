@@ -63,36 +63,34 @@ func (idx *Indexer) IndexPage(docId string, page *models.PageData) error {
 }
 
 // Processes the entries from a Redis stream for indexing
-func (idx *Indexer) ProcessEntries(entries []redis.XStream) {
+func (idx *Indexer) ProcessEntries(messages []redis.XMessage) {
 	rd := idx.RedisClient
 	db := idx.Database
 
-	for _, stream := range entries {
-		for _, message := range stream.Messages {
-			// get doc _id
-			idVal := message.Values["id"]
-			idStr, ok := idVal.(string)
-			if !ok {
-				log.Println("Invalid id value in stream message")
-				continue
-			}
+	for _, message := range messages {
+		// get doc _id
+		idVal := message.Values["id"]
+		idStr, ok := idVal.(string)
+		if !ok {
+			log.Println("Invalid id value in stream message")
+			continue
+		}
 
-			// Get page from database
-			page, err := db.FetchRawPage(idStr, PAGE_INSERT_COLLECTION)
-			if err != nil {
-				log.Println("Mongo fetch error: ", err)
-				continue
-			}
+		// Get page from database
+		page, err := db.FetchRawPage(idStr, PAGE_INSERT_COLLECTION)
+		if err != nil {
+			log.Println("Mongo fetch error: ", err)
+			continue
+		}
 
-			// Index Page
-			log.Println("Indexing page: ", page.Title)
-			err = idx.IndexPage(idStr, page)
+		// Index Page
+		log.Println("Indexing page: ", page.Title)
+		err = idx.IndexPage(idStr, page)
 
-			// acknowledgement of reading
-			_, err = rd.Client.XAck(rd.Ctx, idx.StreamName, idx.GroupName, message.ID).Result()
-			if err != nil {
-				log.Println("Failed to ack message: ", err)
-			}
+		// acknowledgement of reading message
+		_, err = rd.Client.XAck(rd.Ctx, idx.StreamName, idx.GroupName, message.ID).Result()
+		if err != nil {
+			log.Println("Failed to ack message: ", err)
 		}
 	}
 }

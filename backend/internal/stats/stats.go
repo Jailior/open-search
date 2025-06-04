@@ -84,12 +84,30 @@ func (stats *CrawlerStats) StopWriter() {
 	close(stats.stopChan)
 }
 
+func (stats *CrawlerStats) TrackQueueSize(rdb *storage.RedisClient) {
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				qLength, _ := rdb.Client.LLen(rdb.Ctx, "url_queue").Result()
+				stats.mu.Lock()
+				stats.currentQLength = int(qLength)
+				stats.mu.Unlock()
+			case <-stats.stopChan:
+				return
+			}
+		}
+	}()
+}
+
 // Updates cumulative number of pages visited and queue size
-func (stats *CrawlerStats) PageVisit(queueLength int) {
+func (stats *CrawlerStats) PageVisit() {
 	stats.mu.Lock()
 	defer stats.mu.Unlock()
 	stats.currentPagesVisited++
-	stats.currentQLength = queueLength
 }
 
 // Thread-safe incrementers
