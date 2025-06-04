@@ -6,7 +6,9 @@ import (
 	"log"
 
 	"github.com/Jailior/open-search/backend/internal/models"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Graph struct {
@@ -38,8 +40,23 @@ func (g *Graph) AddEdge(url1, url2 string) bool {
 }
 
 func (g *Graph) BuildFromPages(collection *mongo.Collection, ctx context.Context) error {
+	// retrieve all crawled pages -> valid pages
+	validPages := make(map[string]struct{})
+	cursor, err := collection.Find(ctx, map[string]interface{}{}, options.Find().SetProjection(bson.M{"url": 1}))
+	if err != nil {
+		return fmt.Errorf("Failed to read collection pages: %w", err)
+	}
+	for cursor.Next(ctx) {
+		var page struct {
+			URL string
+		}
+		cursor.Decode(&page)
+		validPages[page.URL] = struct{}{}
+	}
+	cursor.Close(ctx)
+
 	// retrieve whole collection
-	cursor, err := collection.Find(ctx, map[string]interface{}{})
+	cursor, err = collection.Find(ctx, map[string]interface{}{})
 	if err != nil {
 		return fmt.Errorf("Failed to read collection pages: %w", err)
 	}
@@ -61,10 +78,10 @@ func (g *Graph) BuildFromPages(collection *mongo.Collection, ctx context.Context
 
 		// add all outlinks
 		for _, outlink := range page.Outlinks {
-			g.AddVertex(outlink)
-
-			ok := g.AddEdge(page.URL, outlink)
-			if ok {
+			_, exists := validPages[outlink]
+			if exists {
+				g.AddVertex(outlink)
+				g.AddEdge(page.URL, outlink)
 				totalEdges++
 			}
 		}

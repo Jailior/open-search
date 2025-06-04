@@ -51,15 +51,20 @@ func (r *RedisClient) PushToStream(stream string, key string, value string) erro
 	return err
 }
 
-// Reads a key value pair from a stream and acknowledges read
+// Reads a key value pair from a stream
 func (r *RedisClient) ReadStream(streamName string, group string, consumerName string) ([]redis.XMessage, error) {
 	entries, err := r.Client.XReadGroup(r.Ctx, &redis.XReadGroupArgs{
 		Group:    group,
 		Consumer: consumerName,
 		Streams:  []string{streamName, ">"},
 		Count:    10,
-		Block:    0, // blocks forever
+		Block:    5 * time.Second, // blocks for 5 seconds
 	}).Result()
+
+	if err == redis.Nil {
+		// timeout likely
+		return nil, nil
+	}
 
 	if err != nil {
 		log.Println("Redis XRead Error: ", err)

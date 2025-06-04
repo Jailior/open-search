@@ -75,6 +75,15 @@ func (db *Database) InsertRawPage(pd *models.PageData, collectionname string) (s
 	res, err := db.GetCollection(collectionname).InsertOne(db.ctx, *pd)
 	db.Error = err
 	if err != nil {
+		if we, ok := err.(mongo.WriteException); ok {
+			for _, e := range we.WriteErrors {
+				if e.Code == 11000 {
+					// duplicate key error
+					return "", fmt.Errorf("DUPE: Page Error: %w", err)
+				}
+			}
+		}
+		db.Error = err
 		return "", err
 	}
 	return res.InsertedID.(primitive.ObjectID).Hex(), nil

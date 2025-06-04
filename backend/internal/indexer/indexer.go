@@ -38,7 +38,7 @@ func (idx *Indexer) RunWorker(cancelContext context.Context, consumerName string
 				time.Sleep(2 * time.Second)
 				continue
 			}
-			if len(messages) > 0 {
+			if messages != nil && len(messages) > 0 {
 				idx.ProcessMessages(messages)
 			}
 		}

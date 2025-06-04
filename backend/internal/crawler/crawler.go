@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -110,13 +111,15 @@ func runCrawler(ctx *CrawlContext, workerID int, cancelCtx context.Context) {
 			err = c.Visit(url)
 			if err != nil {
 				log.Printf("[Worker %d] Failed to visit page.\n", workerID)
+				continue
 			}
-
-			// log stats
-			rdb.SetAdd(url, REDIS_VISITED_SET)
 			if ctx.Err == nil {
 				stats.PageVisit()
 			}
+			ctx.Err = nil
+
+			// log stats
+			rdb.SetAdd(url, REDIS_VISITED_SET)
 		}
 	}
 }
@@ -184,7 +187,11 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 			}
 			if abs_href != "" {
 				outlinks = append(outlinks, abs_href)
-				rdc.EnqueueList(abs_href, REDIS_URL_QUEUE, REDIS_VISITED_SET)
+				if !rdc.SetHas(abs_href, REDIS_VISITED_SET) {
+					rdc.EnqueueList(abs_href, REDIS_URL_QUEUE, REDIS_VISITED_SET)
+				} else {
+					stats.IncrementSkippedDupe()
+				}
 			}
 		})
 
@@ -199,8 +206,13 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 
 		id, err := db.InsertRawPage(&page, PAGE_INSERT_COLLECTION)
 		if err != nil {
-			ctx.Err = err
-			panic(err)
+			if strings.Contains(err.Error(), "DUPE") {
+				stats.IncrementSkippedDupe()
+				log.Printf("Database Deduplication raised and handled: %v", err)
+			} else {
+				ctx.Err = err
+			}
+			return
 		}
 
 		// push page id to redis stream

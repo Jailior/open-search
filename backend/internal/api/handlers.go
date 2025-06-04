@@ -20,11 +20,12 @@ type SearchService struct {
 
 // Returned struct by API, representing a page
 type DocScore struct {
-	DocID   string  `json:"doc_id"`
-	Title   string  `json:"title"`
-	URL     string  `json:"url"`
-	Snippet string  `json:"snippet"`
-	Score   float64 `json:"score"`
+	DocID     string  `json:"doc_id"`
+	Title     string  `json:"title"`
+	URL       string  `json:"url"`
+	Snippet   string  `json:"snippet"`
+	Score     float64 `json:"score"`
+	Positions []int   `json:"-"`
 }
 
 func HealthCheck(c *gin.Context) {
@@ -33,8 +34,8 @@ func HealthCheck(c *gin.Context) {
 
 func (svc *SearchService) SearchHandler(c *gin.Context) {
 
-	const alpha = 0.4           // tunable weight: 0.8 favors relevance (tf-IDF) and 0.2 favor authority (Page Rank Score)
-	const pageRankWeight = 10.0 // a weight applied to pageRankScore so that both tfIdf and pagerank are ~0.1
+	const alpha = 0.2               // tunable weight: 0.8 favors relevance (tf-IDF) and 0.2 favor authority (Page Rank Score)
+	const pageRankMultiplier = 10.0 // a weight applied to pageRankScore so that both tfIdf and pagerank are ~0.1
 
 	query := c.Query("q")
 	if query == "" {
@@ -70,19 +71,18 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 			tfIdf := posting.TF * idf
 
 			page, _ := svc.DB.FetchRawPage(posting.DocID, "pages")
-			pagerankScore := pageRankWeight * svc.DB.GetPageRank(page.URL)
+			pagerankScore := pageRankMultiplier * svc.DB.GetPageRank(page.URL)
 
-			log.Printf("tf-IDF score: %.3f | Page Rank score %.3f", tfIdf, pagerankScore)
+			// log.Printf("tf-IDF score: %.3f | Page Rank score %.3f", tfIdf, pagerankScore)
 
 			weightedScore := alpha*tfIdf + (1-alpha)*pagerankScore
 
 			if _, ok := scores[posting.DocID]; !ok {
-				snippet := getSnippet(posting.Positions, page.Content, term)
 				scores[posting.DocID] = &DocScore{
-					DocID:   posting.DocID,
-					Title:   posting.Title,
-					URL:     posting.URL,
-					Snippet: snippet,
+					DocID:     posting.DocID,
+					Title:     page.Title,
+					URL:       posting.URL,
+					Positions: posting.Positions,
 				}
 			}
 
@@ -106,6 +106,12 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 	start := min(offset, numPages)
 	end := min(start+limit, numPages)
 	paged := ranked[start:end]
+
+	// get snippets
+	for _, page := range paged {
+		rawPage, _ := svc.DB.FetchRawPage(page.DocID, "pages")
+		page.Snippet = getSnippet(page.Positions, rawPage.Content, terms[0])
+	}
 
 	// update metrics
 	err := svc.IncrementSearchNum()
