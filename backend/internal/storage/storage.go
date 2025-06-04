@@ -136,6 +136,7 @@ func (db *Database) InitializeIndexCorpus(collectionname string) error {
 	meta := bson.M{
 		"_id":         "corpus_stats",
 		"total_pages": 0,
+		"term":        "",
 	}
 	_, db.Error = db.collection[collectionname].InsertOne(db.ctx, meta)
 	return db.Error

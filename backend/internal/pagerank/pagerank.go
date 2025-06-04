@@ -3,6 +3,7 @@ package pagerank
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,7 +20,7 @@ func PageRank(graph *Graph, damping float64, iterations int) map[string]float64 
 		rank[url] = 1.0 / float64(N)
 	}
 
-	for range iterations {
+	for i := 0; i < iterations; i++ {
 
 		// reset newRank
 		for url := range graph.vertices {
@@ -46,6 +47,8 @@ func PageRank(graph *Graph, damping float64, iterations int) map[string]float64 
 		for url := range graph.vertices {
 			rank[url] = newRank[url]
 		}
+
+		log.Printf("Iteration %d done.", i+1)
 	}
 
 	return rank

@@ -13,6 +13,8 @@ import (
 	"github.com/Jailior/open-search/backend/internal/storage"
 )
 
+const NUM_WORKERS = 4
+
 /*
 Initializes a URL queue for BFS crawling and a visited set
 to avoid repeating web pages.
@@ -63,5 +65,5 @@ func main() {
 		Redis:    rdc,
 	}
 
-	crawler.StartCrawler(seeds, crawlCtx, 4, ctx)
+	crawler.StartCrawler(seeds, crawlCtx, NUM_WORKERS, ctx)
 }

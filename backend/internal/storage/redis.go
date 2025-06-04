@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -32,6 +33,13 @@ func (r *RedisClient) ResetQueueAndSet(queueName, setName string) {
 	r.Client.Del(r.Ctx, queueName)
 	r.Client.Del(r.Ctx, setName)
 	log.Println("Reset Redis queue and set")
+}
+
+func (r *RedisClient) EnsureConsumerGroup(streamName, group string) {
+	err := r.Client.XGroupCreateMkStream(r.Ctx, streamName, group, "$").Err()
+	if err != nil && !strings.Contains(err.Error(), "BUSYGROUP") {
+		log.Fatalf("Failed to create consumer group: %v\n", err)
+	}
 }
 
 // Pushes a key value pair to a stream

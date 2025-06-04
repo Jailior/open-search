@@ -1,7 +1,9 @@
 package indexer
 
 import (
+	"context"
 	"log"
+	"time"
 
 	"github.com/Jailior/open-search/backend/internal/models"
 	"github.com/Jailior/open-search/backend/internal/parsing"
@@ -19,6 +21,28 @@ type Indexer struct {
 	StreamName  string
 	Database    *storage.Database
 	RedisClient *storage.RedisClient
+}
+
+func (idx *Indexer) RunWorker(cancelContext context.Context, consumerName string) {
+
+	log.Printf("[%s] started\n", consumerName)
+
+	for {
+		select {
+		case <-cancelContext.Done():
+			log.Printf("[%s] Shutdown signal received", consumerName)
+			return
+		default:
+			messages, err := idx.RedisClient.ReadStream(idx.StreamName, idx.GroupName, consumerName)
+			if err != nil {
+				time.Sleep(2 * time.Second)
+				continue
+			}
+			if len(messages) > 0 {
+				idx.ProcessMessages(messages)
+			}
+		}
+	}
 }
 
 // Constructs an inverted index based on page
@@ -63,7 +87,7 @@ func (idx *Indexer) IndexPage(docId string, page *models.PageData) error {
 }
 
 // Processes the entries from a Redis stream for indexing
-func (idx *Indexer) ProcessEntries(messages []redis.XMessage) {
+func (idx *Indexer) ProcessMessages(messages []redis.XMessage) {
 	rd := idx.RedisClient
 	db := idx.Database
 
@@ -84,7 +108,8 @@ func (idx *Indexer) ProcessEntries(messages []redis.XMessage) {
 		}
 
 		// Index Page
-		log.Println("Indexing page: ", page.Title)
+		log.Println("Title: ", page.Title)
+		log.Println("URL: ", page.URL)
 		err = idx.IndexPage(idStr, page)
 
 		// acknowledgement of reading message
