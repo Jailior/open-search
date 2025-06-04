@@ -124,3 +124,10 @@ type TermEntry struct {
 	DF       int              `bson:"df"`
 	Postings []IndexerPosting `bson:"postings"`
 }
+
+/* PageRank models */
+
+type PageRankScore struct {
+	URL   string  `bson:"url"`
+	Score float64 `bson:"score"`
+}

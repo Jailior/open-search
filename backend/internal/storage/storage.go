@@ -56,6 +56,10 @@ func (db *Database) Disconnect() {
 	}
 }
 
+func (db *Database) GetContext() *context.Context {
+	return &db.ctx
+}
+
 // Adds collection with collection name to database, must be done before any functions called using this collection
 func (db *Database) AddCollection(dbname string, collectionname string) {
 	db.collection[collectionname] = db.client.Database(dbname).Collection(collectionname)
@@ -150,4 +154,17 @@ func (db *Database) TotalDocCount(collectionname string) (int, error) {
 func (db *Database) IncrementDocCount(collectionname string) error {
 	_, err := db.collection[collectionname].UpdateByID(db.ctx, "corpus_stats", bson.M{"$inc": bson.M{"total_pages": 1}})
 	return err
+}
+
+func (db *Database) GetPageRank(url string) float64 {
+	collection := db.GetCollection("pagerank")
+	filter := bson.M{"url": url}
+	var result struct {
+		Score float64 `bson:"score"`
+	}
+	err := collection.FindOne(db.ctx, filter).Decode(&result)
+	if err != nil {
+		return 0.0
+	}
+	return result.Score
 }

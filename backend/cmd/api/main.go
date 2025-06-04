@@ -16,6 +16,7 @@ func main() {
 	defer db.Disconnect()
 	db.AddCollection(api.DB_NAME, api.COLL_NAME)
 	db.AddCollection(api.DB_NAME, "pages")
+	db.AddCollection(api.DB_NAME, "pagerank")
 
 	db.InitializeIndexCorpus(api.COLL_NAME)
 

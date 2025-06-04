@@ -32,6 +32,10 @@ func HealthCheck(c *gin.Context) {
 }
 
 func (svc *SearchService) SearchHandler(c *gin.Context) {
+
+	const alpha = 0.4           // tunable weight: 0.8 favors relevance (tf-IDF) and 0.2 favor authority (Page Rank Score)
+	const pageRankWeight = 10.0 // a weight applied to pageRankScore so that both tfIdf and pagerank are ~0.1
+
 	query := c.Query("q")
 	if query == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing query"})
@@ -64,8 +68,15 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 
 		for _, posting := range entry.Postings {
 			tfIdf := posting.TF * idf
+
+			page, _ := svc.DB.FetchRawPage(posting.DocID, "pages")
+			pagerankScore := pageRankWeight * svc.DB.GetPageRank(page.URL)
+
+			log.Printf("tf-IDF score: %.3f | Page Rank score %.3f", tfIdf, pagerankScore)
+
+			weightedScore := alpha*tfIdf + (1-alpha)*pagerankScore
+
 			if _, ok := scores[posting.DocID]; !ok {
-				page, _ := svc.DB.FetchRawPage(posting.DocID, "pages")
 				snippet := getSnippet(posting.Positions, page.Content, term)
 				scores[posting.DocID] = &DocScore{
 					DocID:   posting.DocID,
@@ -74,7 +85,8 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 					Snippet: snippet,
 				}
 			}
-			scores[posting.DocID].Score += tfIdf
+
+			scores[posting.DocID].Score += weightedScore
 		}
 	}
 
