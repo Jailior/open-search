@@ -8,6 +8,7 @@ import (
 	"github.com/Jailior/open-search/backend/internal/models"
 	"github.com/Jailior/open-search/backend/internal/parsing"
 	"github.com/Jailior/open-search/backend/internal/storage"
+	"github.com/Jailior/open-search/backend/internal/utils"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -113,9 +114,10 @@ func (idx *Indexer) ProcessMessages(messages []redis.XMessage) {
 		err = idx.IndexPage(idStr, page)
 
 		// acknowledgement of reading message
-		_, err = rd.Client.XAck(rd.Ctx, idx.StreamName, idx.GroupName, message.ID).Result()
-		if err != nil {
-			log.Println("Failed to ack message: ", err)
-		}
+		utils.RetryWithBackoff(func() error {
+			_, err := rd.Client.XAck(rd.Ctx, idx.StreamName, idx.GroupName, message.ID).Result()
+			return err
+		}, 3, "Redis-AckMessage")
+
 	}
 }

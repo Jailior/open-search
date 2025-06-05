@@ -7,6 +7,7 @@ require (
 	github.com/abadojack/whatlanggo v1.0.1
 	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-gonic/gin v1.10.1
+	github.com/gocolly/colly v1.2.0
 	github.com/gocolly/colly/v2 v2.2.0
 	github.com/redis/go-redis/v9 v9.9.0
 	go.mongodb.org/mongo-driver v1.17.3

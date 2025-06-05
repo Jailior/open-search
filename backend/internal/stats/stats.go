@@ -2,11 +2,11 @@ package stats
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/Jailior/open-search/backend/internal/storage"
+	"github.com/Jailior/open-search/backend/internal/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -64,12 +64,10 @@ func (stats *CrawlerStats) StartWriter(interval time.Duration, db *storage.Datab
 
 				opts := options.Update().SetUpsert(true)
 
-				_, err := db.GetCollection("pages").UpdateOne(context.Background(), filter, update, opts)
-
-				if err != nil {
-					log.Println("Failed to write CrawlerStats to MongoDB:", err)
-					continue
-				}
+				_ = utils.RetryWithBackoff(func() error {
+					_, err := db.GetCollection("pages").UpdateOne(context.Background(), filter, update, opts)
+					return err
+				}, 3, "UpdateCrawlerStats")
 
 			case <-stats.stopChan:
 				return

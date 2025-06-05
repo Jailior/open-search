@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -17,9 +18,11 @@ const REDIS_INDEX_QUEUE = "pages_to_index"
 const REDIS_STREAM_GROUP = "indexer_group"
 const REDIS_CONSUMER_NAME = "indexer-1"
 
-const NUM_WORKERS = 8
-
 func main() {
+
+	workers := flag.Int("workers", 8, "Number of concurrent indexer workers")
+
+	flag.Parse()
 
 	rd := storage.MakeRedisClient()
 
@@ -49,7 +52,7 @@ func main() {
 	}()
 
 	var wg sync.WaitGroup
-	for i := 0; i < NUM_WORKERS; i++ {
+	for i := 0; i < *workers; i++ {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()

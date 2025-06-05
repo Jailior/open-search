@@ -12,6 +12,7 @@ import (
 	"github.com/Jailior/open-search/backend/internal/parsing"
 	"github.com/Jailior/open-search/backend/internal/stats"
 	"github.com/Jailior/open-search/backend/internal/storage"
+	"github.com/Jailior/open-search/backend/internal/utils"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/abadojack/whatlanggo"
 	"github.com/gocolly/colly/v2"
@@ -37,10 +38,6 @@ type CrawlContext struct {
 }
 
 func StartCrawler(seeds []string, ctx *CrawlContext, workerCount int, cancelContext context.Context) {
-	// enqueue seed URLs
-	for _, url := range seeds {
-		ctx.Redis.EnqueueList(url, REDIS_URL_QUEUE, REDIS_VISITED_SET)
-	}
 
 	length, _ := ctx.Redis.Client.LLen(ctx.Redis.Ctx, REDIS_URL_QUEUE).Result()
 	fmt.Println("URL queue length:", length)
@@ -74,6 +71,7 @@ func runCrawler(ctx *CrawlContext, workerID int, cancelCtx context.Context) {
 		Delay:       0 * time.Second,
 		RandomDelay: 0 * time.Second,
 	})
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -188,7 +186,10 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 			if abs_href != "" {
 				outlinks = append(outlinks, abs_href)
 				if !rdc.SetHas(abs_href, REDIS_VISITED_SET) {
-					rdc.EnqueueList(abs_href, REDIS_URL_QUEUE, REDIS_VISITED_SET)
+					err = utils.RetryWithBackoff(func() error {
+						return rdc.EnqueueList(abs_href, REDIS_URL_QUEUE, REDIS_VISITED_SET)
+					}, 3, "Redis-EnqueueList")
+
 				} else {
 					stats.IncrementSkippedDupe()
 				}
@@ -216,7 +217,11 @@ func MakeHTMLHandler(ctx *CrawlContext) func(e *colly.HTMLElement) {
 		}
 
 		// push page id to redis stream
-		err = rdc.PushToStream(REDIS_INDEX_QUEUE, "id", id)
+		err = utils.RetryWithBackoff(func() error {
+			e := rdc.PushToStream(REDIS_INDEX_QUEUE, "id", id)
+			return e
+		}, 3, "Redis-StreamPush")
+
 		if err != nil {
 			log.Println("Failed to push to Redis stream: ", err)
 			ctx.Err = err

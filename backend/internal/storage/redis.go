@@ -79,11 +79,12 @@ func (r *RedisClient) ReadStream(streamName string, group string, consumerName s
 }
 
 // Enqueues url to list if url is not in set
-func (r *RedisClient) EnqueueList(url, listName, setName string) {
+func (r *RedisClient) EnqueueList(url, listName, setName string) error {
 	err := r.Client.RPush(r.Ctx, listName, url).Err()
 	if err != nil {
-		log.Printf("Failed to enqueue page to list: %v\n", err)
+		return fmt.Errorf("Failed to enqueue page to list: %v\n", err)
 	}
+	return nil
 }
 
 // Dequeues url from list

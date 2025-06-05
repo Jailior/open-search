@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"os"
 	"os/signal"
@@ -13,14 +14,19 @@ import (
 	"github.com/Jailior/open-search/backend/internal/storage"
 )
 
-const NUM_WORKERS = 4
-
 /*
 Initializes a URL queue for BFS crawling and a visited set
 to avoid repeating web pages.
 Seeds the crawler with a single initial seed.
 */
 func main() {
+
+	// define flags
+	reset := flag.Bool("reset", false, "Clear Redis URL queue and visited set before crawling.")
+	_ = flag.Bool("resume", false, "Resume from existing Redis queue and set (default)")
+	workers := flag.Int("workers", 4, "Number of concurrent crawler workers")
+
+	flag.Parse()
 
 	// shutdown context
 	ctx, cancel := context.WithCancel(context.Background())
@@ -44,7 +50,13 @@ func main() {
 
 	// initialize redis client
 	rdc := storage.MakeRedisClient()
-	rdc.ResetQueueAndSet(crawler.REDIS_URL_QUEUE, crawler.REDIS_VISITED_SET)
+
+	if *reset {
+		log.Println("RESET: Resetting Redis Queue and set")
+		rdc.ResetQueueAndSet(crawler.REDIS_URL_QUEUE, crawler.REDIS_VISITED_SET)
+	} else {
+		log.Println("RESUME: Resuming from existing Redis Queue and set")
+	}
 
 	// initialize statistics struct
 	stats := stats.MakeCrawlerStats()
@@ -65,5 +77,12 @@ func main() {
 		Redis:    rdc,
 	}
 
-	crawler.StartCrawler(seeds, crawlCtx, NUM_WORKERS, ctx)
+	// enqueue seed URLs
+	if *reset {
+		for _, url := range seeds {
+			crawlCtx.Redis.EnqueueList(url, crawler.REDIS_URL_QUEUE, crawler.REDIS_VISITED_SET)
+		}
+	}
+
+	crawler.StartCrawler(seeds, crawlCtx, *workers, ctx)
 }
