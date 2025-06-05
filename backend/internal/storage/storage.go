@@ -112,6 +112,36 @@ func (db *Database) FetchRawPage(idHex string, collectionname string) (*models.P
 	return &result, err
 }
 
+func (db *Database) FetchRawPageBatch(idHexes []string, collectionname string) ([]models.PageData, error) {
+	var objIDs []primitive.ObjectID
+	for _, hex := range idHexes {
+		id, err := primitive.ObjectIDFromHex(hex)
+		if err != nil {
+			continue
+		}
+		objIDs = append(objIDs, id)
+	}
+
+	cursor, err := db.collection[collectionname].Find(db.ctx, bson.M{
+		"_id": bson.M{"$in": objIDs},
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(db.ctx)
+
+	var results []models.PageData
+	for cursor.Next(db.ctx) {
+		var page models.PageData
+		if err := cursor.Decode(&page); err != nil {
+			continue
+		}
+		results = append(results, page)
+	}
+
+	return results, nil
+}
+
 func (db *Database) FetchPostings(term string, collectionname string) (*models.TermEntry, error) {
 	var result models.TermEntry
 	err := db.collection[collectionname].FindOne(db.ctx, bson.M{"term": term}).Decode(&result)

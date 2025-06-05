@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sort"
 
+	"github.com/Jailior/open-search/backend/internal/models"
 	"github.com/Jailior/open-search/backend/internal/parsing"
 	"github.com/Jailior/open-search/backend/internal/storage"
 	"github.com/gin-gonic/gin"
@@ -101,11 +102,27 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 	end := min(start+limit, numPages)
 	paged := ranked[start:end]
 
-	// get snippets
+	// get raw pages and process snippet
+	var docIDs []string = make([]string, 0)
 	for _, page := range paged {
-		rawPage, _ := svc.DB.FetchRawPage(page.DocID, "pages")
-		page.Snippet = getSnippet(page.Positions, rawPage.Content, terms[0])
+		docIDs = append(docIDs, page.DocID)
+	}
 
+	rawPages, err := svc.DB.FetchRawPageBatch(docIDs, "pages")
+
+	rawPageMap := make(map[string]models.PageData)
+	for _, page := range rawPages {
+		idHex := page.ID.Hex()
+		rawPageMap[idHex] = page
+	}
+
+	for _, page := range paged {
+		rawPage, ok := rawPageMap[page.DocID]
+		if !ok {
+			continue
+		}
+
+		page.Snippet = getSnippet(page.Positions, rawPage.Content, terms[0])
 		page.Title = rawPage.Title
 		page.URL = rawPage.URL
 	}

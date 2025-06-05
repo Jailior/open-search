@@ -3,16 +3,19 @@ package models
 import (
 	"log"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 /* Crawler Models*/
 // Key data points stored per page
 type PageData struct {
-	URL         string
-	Title       string
-	Content     string
-	Outlinks    []string
-	TimeCrawled time.Time
+	ID          primitive.ObjectID `bson:"_id,omitempty"`
+	URL         string             `bson:"url"`
+	Title       string             `bson:"title"`
+	Content     string             `bson:"content"`
+	Outlinks    []string           `bson:"outlinks"`
+	TimeCrawled time.Time          `bson:"timecrawled"`
 }
 
 // Prints key elements of a page
