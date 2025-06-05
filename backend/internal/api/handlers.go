@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/http"
 	"sort"
+	"time"
 
 	"github.com/Jailior/open-search/backend/internal/models"
 	"github.com/Jailior/open-search/backend/internal/parsing"
@@ -59,12 +60,14 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 
 	scores := map[string]*DocScore{}
 
+	timeStart := time.Now()
 	entries, err := svc.DB.FetchPostingsBatch(terms, COLL_NAME)
 	if err != nil {
 		log.Println("Batch fetch error: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
+	timeAfterPostingFetch := time.Now()
 
 	// process entries
 	for _, entry := range entries {
@@ -84,6 +87,7 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 			scores[posting.DocID].Score += weightedScore
 		}
 	}
+	timeAfterEntries := time.Now()
 
 	ranked := make([]*DocScore, 0, len(scores))
 
@@ -102,20 +106,27 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 	end := min(start+limit, numPages)
 	paged := ranked[start:end]
 
-	// get raw pages and process snippet
+	// docIDs list
 	var docIDs []string = make([]string, 0)
 	for _, page := range paged {
 		docIDs = append(docIDs, page.DocID)
 	}
 
+	timeAfterMisc := time.Now()
+
+	// batch fetch raw pages
 	rawPages, err := svc.DB.FetchRawPageBatch(docIDs, "pages")
 
+	timeAfterRawFetch := time.Now()
+
+	// map raw page by id
 	rawPageMap := make(map[string]models.PageData)
 	for _, page := range rawPages {
 		idHex := page.ID.Hex()
 		rawPageMap[idHex] = page
 	}
 
+	// get snippets
 	for _, page := range paged {
 		rawPage, ok := rawPageMap[page.DocID]
 		if !ok {
@@ -126,6 +137,15 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 		page.Title = rawPage.Title
 		page.URL = rawPage.URL
 	}
+
+	timeAfterSnippets := time.Now()
+
+	log.Println("Time taken for fetch postings batch: ", timeAfterPostingFetch.Sub(timeStart))
+	log.Println("Time taken for entries processing: ", timeAfterEntries.Sub(timeAfterPostingFetch))
+	log.Println("Time taken for misc ops: ", timeAfterMisc.Sub(timeAfterEntries))
+	log.Println("Time taken for fetching raw pages: ", timeAfterRawFetch.Sub(timeAfterMisc))
+	log.Println("Time taken for processing snippts: ", timeAfterSnippets.Sub(timeAfterRawFetch))
+	log.Println("Total Time: ", timeAfterSnippets.Sub(timeStart))
 
 	// update metrics
 	err = svc.IncrementSearchNum()
