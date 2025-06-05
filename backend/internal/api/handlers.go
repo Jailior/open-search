@@ -69,14 +69,27 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 	}
 	timeAfterPostingFetch := time.Now()
 
+	allURLs := make(map[string]struct{})
+	for _, entry := range entries {
+		for _, posting := range entry.Postings {
+			allURLs[posting.URL] = struct{}{}
+		}
+	}
+	uniqueURLs := make([]string, 0, len(allURLs))
+	for url := range allURLs {
+		uniqueURLs = append(uniqueURLs, url)
+	}
+	pageRankCache, _ := svc.DB.FetchPageRankBatch(uniqueURLs)
+
 	// process entries
 	for _, entry := range entries {
 		idf := math.Log(float64(docCount) / float64(entry.DF))
 
 		for _, posting := range entry.Postings {
 			tfIdf := posting.TF * idf
-			pagerankScore := pageRankMultiplier * svc.DB.GetPageRank(posting.URL)
-			weightedScore := alpha*tfIdf + (1-alpha)*pagerankScore
+			rank, _ := pageRankCache[posting.URL]
+
+			weightedScore := alpha*tfIdf + (1-alpha)*rank
 
 			if _, ok := scores[posting.DocID]; !ok {
 				scores[posting.DocID] = &DocScore{

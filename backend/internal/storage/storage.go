@@ -241,3 +241,27 @@ func (db *Database) GetPageRank(url string) float64 {
 	}
 	return result.Score
 }
+
+func (db *Database) FetchPageRankBatch(urls []string) (map[string]float64, error) {
+	cursor, err := db.collection["pagerank"].Find(db.ctx, bson.M{
+		"url": bson.M{"$in": urls},
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(db.ctx)
+
+	results := make(map[string]float64)
+	for cursor.Next(db.ctx) {
+		var doc struct {
+			URL   string  `bson:"url"`
+			Score float64 `bson:"score"`
+		}
+		if err := cursor.Decode(&doc); err != nil {
+			continue
+		}
+		results[doc.URL] = doc.Score
+	}
+
+	return results, nil
+}
