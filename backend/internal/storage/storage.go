@@ -70,6 +70,17 @@ func (db *Database) GetCollection(collectionname string) *mongo.Collection {
 	return db.collection[collectionname]
 }
 
+func (db *Database) MakeIndex(collectionname, field string) error {
+	indexModel := mongo.IndexModel{
+		Keys: bson.M{
+			field: 1,
+		},
+		Options: options.Index().SetUnique(true),
+	}
+	_, err := db.GetCollection(collectionname).Indexes().CreateOne(db.ctx, indexModel)
+	return err
+}
+
 // Inserts a PageData page as a document in collection
 func (db *Database) InsertRawPage(pd *models.PageData, collectionname string) (string, error) {
 	res, err := db.GetCollection(collectionname).InsertOne(db.ctx, *pd)

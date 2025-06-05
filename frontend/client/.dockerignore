@@ -1,0 +1,8 @@
+# Avoid copying local clutter into Docker image
+.git
+*.log
+*.env
+*.md
+tmp
+node_modules
+dist

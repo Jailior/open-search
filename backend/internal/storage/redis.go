@@ -29,6 +29,11 @@ func MakeRedisClient() *RedisClient {
 	}
 }
 
+func (r *RedisClient) ResetStream(streamName string) {
+	r.Client.Del(r.Ctx, streamName)
+	log.Println("Reset Redis stream")
+}
+
 func (r *RedisClient) ResetQueueAndSet(queueName, setName string) {
 	r.Client.Del(r.Ctx, queueName)
 	r.Client.Del(r.Ctx, setName)

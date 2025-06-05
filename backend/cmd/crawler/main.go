@@ -54,6 +54,7 @@ func main() {
 	if *reset {
 		log.Println("RESET: Resetting Redis Queue and set")
 		rdc.ResetQueueAndSet(crawler.REDIS_URL_QUEUE, crawler.REDIS_VISITED_SET)
+		db.MakeIndex(crawler.PAGE_INSERT_COLLECTION, "url")
 	} else {
 		log.Println("RESUME: Resuming from existing Redis Queue and set")
 	}

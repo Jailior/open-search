@@ -31,6 +31,7 @@ func main() {
 
 	db.AddCollection(DB_NAME, PAGE_RANK_COLL)
 	pageRankCollection := db.GetCollection(PAGE_RANK_COLL)
+	db.MakeIndex(PAGE_RANK_COLL, "url")
 
 	err := pagerank.SavePageRankScore(normRanks, pageRankCollection, *db.GetContext())
 	if err != nil {

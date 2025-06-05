@@ -64,7 +64,11 @@ func runCrawler(ctx *CrawlContext, workerID int, cancelCtx context.Context) {
 	rdb := ctx.Redis
 
 	// intial colly scraper
-	c := colly.NewCollector()
+	c := colly.NewCollector(
+		colly.DisallowedDomains(
+			"https://redditinc.com/", // causes slow parsing
+		),
+	)
 	err = c.Limit(&colly.LimitRule{
 		DomainGlob:  "*",
 		Parallelism: 1,

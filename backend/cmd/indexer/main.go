@@ -21,6 +21,7 @@ const REDIS_CONSUMER_NAME = "indexer-1"
 func main() {
 
 	workers := flag.Int("workers", 8, "Number of concurrent indexer workers")
+	reset := flag.Bool("reset", false, "Clear Redis indexer stream before indexing.")
 
 	flag.Parse()
 
@@ -33,6 +34,11 @@ func main() {
 	db.AddCollection(indexer.DB_NAME, indexer.PAGE_INSERT_COLLECTION)
 	db.AddCollection(indexer.DB_NAME, indexer.PAGE_INDEX_COLLECTION)
 	db.InitializeIndexCorpus(indexer.PAGE_INDEX_COLLECTION)
+
+	if *reset {
+		rd.ResetStream(REDIS_INDEX_QUEUE)
+		db.MakeIndex(indexer.PAGE_INDEX_COLLECTION, "term")
+	}
 
 	// create consumer if not already created
 	rd.EnsureConsumerGroup(REDIS_INDEX_QUEUE, REDIS_STREAM_GROUP)

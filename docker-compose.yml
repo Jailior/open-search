@@ -1,0 +1,68 @@
+services:
+  redis:
+    image: redis
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+
+  mongodb:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  crawler:
+    build:
+      context: .
+      dockerfile: ./backend/cmd/crawler/crawler.Dockerfile
+    environment:
+      - REDIS_ADDR=redis:6379
+      - MONGODB_URI=mongodb://mongodb:27017
+    depends_on: [redis, mongodb]
+    profiles: ["optional"]
+    command: ["./crawler"]
+
+  indexer:
+    build:
+      context: .
+      dockerfile: ./backend/cmd/indexer/indexer.Dockerfile
+    environment:
+      - REDIS_ADDR=redis:6379
+      - MONGODB_URI=mongodb://mongodb:27017
+    depends_on: [redis, mongodb]
+    profiles: ["optional"]
+    command: ["./indexer"]
+  
+  pagerank:
+    build:
+      context: .
+      dockerfile: ./backend/cmd/pagerank/pagerank.Dockerfile
+    environment:
+        - MONGODB_URI=mongodb://mongodb:27017
+    depends_on: [mongodb]
+    profiles: ["optional"]
+
+  api:
+    build:
+      context: .
+      dockerfile: ./backend/cmd/api/api.Dockerfile
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+    ports:
+      - "8080:8080"
+    depends_on: [mongodb]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/client/frontend.Dockerfile
+    ports:
+      - "3000:80"
+    depends_on: [api]
+
+volumes:
+  redis-data:
+  mongo-data:
