@@ -69,23 +69,15 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 
 		for _, posting := range entry.Postings {
 			tfIdf := posting.TF * idf
-
-			page, _ := svc.DB.FetchRawPage(posting.DocID, "pages")
-			pagerankScore := pageRankMultiplier * svc.DB.GetPageRank(page.URL)
-
-			// log.Printf("tf-IDF score: %.3f | Page Rank score %.3f", tfIdf, pagerankScore)
-
+			pagerankScore := pageRankMultiplier * svc.DB.GetPageRank(posting.URL)
 			weightedScore := alpha*tfIdf + (1-alpha)*pagerankScore
 
 			if _, ok := scores[posting.DocID]; !ok {
 				scores[posting.DocID] = &DocScore{
 					DocID:     posting.DocID,
-					Title:     page.Title,
-					URL:       posting.URL,
 					Positions: posting.Positions,
 				}
 			}
-
 			scores[posting.DocID].Score += weightedScore
 		}
 	}
@@ -111,6 +103,9 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 	for _, page := range paged {
 		rawPage, _ := svc.DB.FetchRawPage(page.DocID, "pages")
 		page.Snippet = getSnippet(page.Positions, rawPage.Content, terms[0])
+
+		page.Title = rawPage.Title
+		page.URL = rawPage.URL
 	}
 
 	// update metrics
