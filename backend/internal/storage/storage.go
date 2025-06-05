@@ -121,6 +121,28 @@ func (db *Database) FetchPostings(term string, collectionname string) (*models.T
 	return &result, nil
 }
 
+func (db *Database) FetchPostingsBatch(terms []string, collectionname string) ([]models.TermEntry, error) {
+	cursor, err := db.collection[collectionname].Find(db.ctx, bson.M{
+		"term": bson.M{"$in": terms},
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(db.ctx)
+
+	var results []models.TermEntry
+	for cursor.Next(db.ctx) {
+		var entry models.TermEntry
+		if err := cursor.Decode(&entry); err != nil {
+			continue
+		}
+		if entry.DF > 0 {
+			results = append(results, entry)
+		}
+	}
+	return results, nil
+}
+
 // Updates a term in the collection based on a filter and update bson.M
 // Returns a reference to the mongo UpdateResult from the update
 func (db *Database) UpdateTerm(collectionname string, filter bson.M, update bson.M) (*mongo.UpdateResult, error) {

@@ -58,13 +58,15 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 
 	scores := map[string]*DocScore{}
 
-	// get posting for each term
-	for _, term := range terms {
-		entry, err := svc.DB.FetchPostings(term, COLL_NAME)
-		if err != nil {
-			continue
-		}
+	entries, err := svc.DB.FetchPostingsBatch(terms, COLL_NAME)
+	if err != nil {
+		log.Println("Batch fetch error: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
 
+	// process entries
+	for _, entry := range entries {
 		idf := math.Log(float64(docCount) / float64(entry.DF))
 
 		for _, posting := range entry.Postings {
@@ -109,7 +111,7 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 	}
 
 	// update metrics
-	err := svc.IncrementSearchNum()
+	err = svc.IncrementSearchNum()
 	if err != nil {
 		log.Println("Error incrementing search number: ", err)
 	}
