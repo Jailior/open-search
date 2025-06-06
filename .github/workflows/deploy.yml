@@ -14,7 +14,7 @@ jobs:
       
       - name: SSH, Pull & Deploy
         run: |
-          ssh -i key.pem -o StrictHostKeyChecking=no ubuntu@{{ secrets.LIGHTSAIL_IP }} << EOF
+          ssh -i key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.LIGHTSAIL_IP }} << 'EOF'
               cd /home/ubuntu/open-search
               git pull
               docker compose pull
