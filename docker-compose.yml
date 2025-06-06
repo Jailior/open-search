@@ -15,9 +15,7 @@ services:
       - mongo-data:/data/db
 
   crawler:
-    build:
-      context: .
-      dockerfile: ./backend/cmd/crawler/crawler.Dockerfile
+    image: aliosman0/crawler:latest
     environment:
       - REDIS_ADDR=redis:6379
       - MONGODB_URI=mongodb://mongodb:27017
@@ -26,9 +24,7 @@ services:
     command: ["./crawler"]
 
   indexer:
-    build:
-      context: .
-      dockerfile: ./backend/cmd/indexer/indexer.Dockerfile
+    image: aliosman0/indexer:latest
     environment:
       - REDIS_ADDR=redis:6379
       - MONGODB_URI=mongodb://mongodb:27017
@@ -37,18 +33,14 @@ services:
     command: ["./indexer"]
   
   pagerank:
-    build:
-      context: .
-      dockerfile: ./backend/cmd/pagerank/pagerank.Dockerfile
+    image: aliosman0/pagerank:latest
     environment:
         - MONGODB_URI=mongodb://mongodb:27017
     depends_on: [mongodb]
     profiles: ["optional"]
 
   api:
-    build:
-      context: .
-      dockerfile: ./backend/cmd/api/api.Dockerfile
+    image: aliosman0/api:latest
     environment:
       - MONGODB_URI=mongodb://mongodb:27017
     ports:
@@ -56,9 +48,7 @@ services:
     depends_on: [mongodb]
 
   frontend:
-    build:
-      context: .
-      dockerfile: ./frontend/client/frontend.Dockerfile
+    image: aliosman0/frontend:latest
     ports:
       - "3000:80"
     depends_on: [api]
