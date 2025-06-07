@@ -24,30 +24,30 @@ const MetricsCard: React.FC<Props> = ({ metrics }) => {
   return (
     <div className={styles.metricsItem}>
       <h1 className="text-4xl font-extrabold text-green-reseda mb-2">
-        {metrics.number_of_searches}
+        {metrics.number_of_searches.toLocaleString()}
       </h1>
       <h3 className="text-lg text-gray-600 mb-6">searches made on OpenSearch</h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-gray-700">
         <div className={styles.factText}>
           <FaSpider className="inline text-black-eerie mr-2" />  
-          <strong>Total Pages Crawled:</strong> {latestCrawled}
+          <strong>Total Pages Crawled:</strong> {latestCrawled.toLocaleString()}
         </div>
         <div className={styles.factText}>
            <FaSearch className="inline text-black-eerie mr-2" /> 
-          <strong>Latest Queue Size:</strong> {latestQueueSize}
+          <strong>Latest Queue Size:</strong> {latestQueueSize.toLocaleString()}
         </div>
         <div className={styles.factText}>
           <FaRegClone className="inline text-black-eerie mr-2" /> 
-          <strong>Duplicates Avoided:</strong> {metrics.duplicates_avoided}
+          <strong>Duplicates Avoided:</strong> {metrics.duplicates_avoided.toLocaleString()}
         </div>
         <div className={styles.factText}>
           <FaGlobe className="inline text-black-eerie mr-2" /> 
-          <strong>Pages Skipped due to Lang:</strong> {metrics.pages_skipped_lang}
+          <strong>Pages Skipped due to Lang:</strong> {metrics.pages_skipped_lang.toLocaleString()}
         </div>
         <div className={styles.factText}>
           <FaBandAid className="inline text-black-eerie mr-2" /> 
-          <strong>Pages Skipped due to Errors:</strong> {metrics.page_errs}
+          <strong>Pages Skipped due to Errors:</strong> {metrics.page_errs.toLocaleString()}
         </div>
         <div className={styles.factText}>
           <FaStar className="inline text-yellow-500 mr-2" /> 

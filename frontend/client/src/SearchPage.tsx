@@ -116,7 +116,7 @@ export default function SearchPage() {
             </button>
         </div>
             <div>
-                <p className={`${styles.factText} mt-10`}>Search from ~1,000 webpages!</p>
+                <p className={`${styles.factText} mt-10`}>Search from ~26,000 webpages!</p>
         </div>
       </>
       )}
