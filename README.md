@@ -2,7 +2,7 @@
 
 **OpenSearch** is distributed web search engine made for educational and hobbyist purposes. OpenSearch is follows the Google search architecture including microservices for crawling, indexing and querying.
 
-OpenSearch is available live now at [opensearch.app](http://3.144.8.239:3000)
+OpenSearch is available live now at [opensearch.app](http://3.149.133.89:3000/)
 
 
 
@@ -10,6 +10,7 @@ OpenSearch is available live now at [opensearch.app](http://3.144.8.239:3000)
 
 - **Web Search**: OpenSearch provides a simple responsive web UI for querying the web with results returned and ranked by the PageRank and TF-IDF algorithms.
 - **Look at these!**: is a simple metrics about page providing live information on the latest number of pages crawled, total searches served, and many more!
+
 
 ## Architecture
 
