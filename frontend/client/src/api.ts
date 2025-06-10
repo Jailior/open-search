@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const API_BASE = "http://3.149.133.89:8080"
+const API_BASE = "/api/"
 
 export const searchQuery = async (q: string, offset = 0, limit = 10) => {
     const res = await axios.get(`${API_BASE}/search`, {
