@@ -15,4 +15,4 @@ jobs:
       - name: SSH, Pull & Deploy
         run: |
           ssh -i key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.LIGHTSAIL_IP }} \
-            "cd /home/ubuntu/open-search && git pull && docker compose pull && docker compose up -d"
+            "cd /home/ubuntu/open-search && git pull && docker compose --profile optional pull && docker compose up -d"
