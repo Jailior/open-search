@@ -14,27 +14,34 @@ import (
 	"github.com/Jailior/open-search/backend/internal/storage"
 )
 
+// Redis stream name for pages to be indexed
 const REDIS_INDEX_QUEUE = "pages_to_index"
+
+// Redis stream consumer group
 const REDIS_STREAM_GROUP = "indexer_group"
-const REDIS_CONSUMER_NAME = "indexer-1"
 
 func main() {
 
+	// initialize flags
 	workers := flag.Int("workers", 8, "Number of concurrent indexer workers")
 	reset := flag.Bool("reset", false, "Clear Redis indexer stream before indexing.")
 
 	flag.Parse()
 
+	// make and connect Redis and Mongo clients
 	rd := storage.MakeRedisClient()
-
 	db := storage.MakeDB()
 	db.Connect()
 	defer db.Disconnect()
 
+	// Add raw page, inverted index collections
 	db.AddCollection(indexer.DB_NAME, indexer.PAGE_INSERT_COLLECTION)
 	db.AddCollection(indexer.DB_NAME, indexer.PAGE_INDEX_COLLECTION)
+
+	// add corpus stats document in inverted index
 	db.InitializeIndexCorpus(indexer.PAGE_INDEX_COLLECTION)
 
+	// if reset flag was passed, reset Redis stream and initialize index on "term" field
 	if *reset {
 		rd.ResetStream(REDIS_INDEX_QUEUE)
 		db.MakeIndex(indexer.PAGE_INDEX_COLLECTION, "term")
@@ -51,12 +58,14 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
+	// send signal on sigs channel to indexers when signal received
 	go func() {
 		<-sigs
 		log.Println("Indexer shutdown signal received...")
 		cancel()
 	}()
 
+	// initialize indexers
 	var wg sync.WaitGroup
 	for i := 0; i < *workers; i++ {
 		wg.Add(1)

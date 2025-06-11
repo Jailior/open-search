@@ -2,6 +2,7 @@ import React from "react";
 import styles from "./SearchPage.module.css"
 import { FaSpider, FaRegClone, FaGlobe, FaSearch, FaBandAid, FaStar } from "react-icons/fa";
 
+// Standard interface for metrics instance
 export interface Metrics {
     pages_crawled: number[];
     queue_size: number[];
@@ -15,7 +16,9 @@ interface Props {
     metrics: Metrics;
 }
 
+// Metrics card component, requires metrics instance
 const MetricsCard: React.FC<Props> = ({ metrics }) => {
+  // Get latest figures in list
   const latestCrawled =
     metrics.pages_crawled[metrics.pages_crawled.length - 1] || 0;
   const latestQueueSize =

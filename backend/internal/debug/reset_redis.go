@@ -8,11 +8,14 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+/*
+Resets Redis streams, sets and lists
+*/
 func main() {
 	ctx := context.Background()
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("REDIS_ADDR"), // e.g., "localhost:6379"
+		Addr:     os.Getenv("REDIS_ADDR"),
 		Password: "",
 		DB:       0,
 	})

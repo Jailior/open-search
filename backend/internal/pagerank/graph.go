@@ -11,16 +11,19 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// Graph structure, uses adjacency list representation
 type Graph struct {
-	vertices map[string][]string // adjacency list for outlinks
+	vertices map[string][]string // adjacency list used for outlinks
 }
 
+// Makes empty graph
 func MakeGraph() *Graph {
 	return &Graph{
 		vertices: make(map[string][]string),
 	}
 }
 
+// Adds vertex to graph, returns true if non-duplicate vertex is successfully added
 func (g *Graph) AddVertex(url string) bool {
 	if _, ok := g.vertices[url]; !ok {
 		g.vertices[url] = make([]string, 0)
@@ -29,6 +32,7 @@ func (g *Graph) AddVertex(url string) bool {
 	return false
 }
 
+// Adds edge between two vertices, returns false if either vertex is not present in graph
 func (g *Graph) AddEdge(url1, url2 string) bool {
 	_, ok1 := g.vertices[url1]
 	_, ok2 := g.vertices[url2]
@@ -39,13 +43,15 @@ func (g *Graph) AddEdge(url1, url2 string) bool {
 	return true
 }
 
+// Builds up graph from given collection, expects url and outlinks
 func (g *Graph) BuildFromPages(collection *mongo.Collection, ctx context.Context) error {
-	// retrieve all crawled pages -> valid pages
+	// retrieve all crawled pages' URLs
 	validPages := make(map[string]struct{})
 	cursor, err := collection.Find(ctx, map[string]interface{}{}, options.Find().SetProjection(bson.M{"url": 1}))
 	if err != nil {
 		return fmt.Errorf("Failed to read collection pages: %w", err)
 	}
+	// for all page URLs found decode and add to unique page map
 	for cursor.Next(ctx) {
 		var page struct {
 			URL string
@@ -55,7 +61,7 @@ func (g *Graph) BuildFromPages(collection *mongo.Collection, ctx context.Context
 	}
 	cursor.Close(ctx)
 
-	// retrieve whole collection
+	// retrieve whole page collection
 	cursor, err = collection.Find(ctx, map[string]interface{}{})
 	if err != nil {
 		return fmt.Errorf("Failed to read collection pages: %w", err)
@@ -64,7 +70,9 @@ func (g *Graph) BuildFromPages(collection *mongo.Collection, ctx context.Context
 
 	var totalPages, totalEdges, crawledPages int
 
+	// building graph from pages
 	for cursor.Next(ctx) {
+		// get page model instance
 		var page models.PageData
 		err := cursor.Decode(&page)
 		if err != nil {

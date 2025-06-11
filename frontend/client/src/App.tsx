@@ -4,10 +4,12 @@
     return (
       <div className="min-h-screen flex flex-col bg-white text-gray-900">
 
+        {/* Search Page Component */}
         <main className="flex-grow flex flex-col justify-center">
           <SearchPage />
         </main>
 
+        {/* Static footer */}
         <footer className="bg-white text-center text-sm text-black-eerie py-4">
           Powered by{" "}
           <span className="font-semibold text-green-reseda">Ali Osman</span> • {" "}

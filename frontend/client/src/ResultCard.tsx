@@ -1,7 +1,7 @@
 import React from "react";
 import styles from "./SearchPage.module.css";
 
-
+// Standard interface for a page result
 export interface Result {
   doc_id: string;
   title: string;
@@ -14,6 +14,7 @@ interface Props {
     result: Result;
 }
 
+// Result card component, requires Result instance
 const ResultCard: React.FC<Props> = ({ result }) => {
     return (
     <div className={styles.resultItem}>

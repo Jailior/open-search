@@ -41,15 +41,20 @@ func MakeCrawlerStats() *CrawlerStats {
 	}
 }
 
-// Background writer, writes to filename every interval with updated JSON object for crawler stats
+// Background writer, writes every interval to Mongo document for crawler stats
+// Needs a call to TrackQueueSize for up to date url queue length
 func (stats *CrawlerStats) StartWriter(interval time.Duration, db *storage.Database) {
+	// Asynchronous function
 	go func() {
+		// Define ticker for interval
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
 		for {
+			// Write to database every interval, ends when channel sends stop
 			select {
 			case <-ticker.C:
+				// Get snapshot of stats
 				stats.mu.Lock()
 
 				stats.PagesCrawled = append(stats.PagesCrawled, uint32(stats.currentPagesVisited))
@@ -59,17 +64,21 @@ func (stats *CrawlerStats) StartWriter(interval time.Duration, db *storage.Datab
 				saved_stats := *stats
 				stats.mu.Unlock()
 
+				// filter and update in database
 				filter := bson.M{"_id": "crawler_stats"}
 				update := bson.M{"$set": saved_stats}
 
+				// initialize if not present
 				opts := options.Update().SetUpsert(true)
 
+				// write to database with 3 retries
 				_ = utils.RetryWithBackoff(func() error {
 					_, err := db.GetCollection("pages").UpdateOne(context.Background(), filter, update, opts)
 					return err
 				}, 3, "UpdateCrawlerStats")
 
 			case <-stats.stopChan:
+				// end when channel sends stop
 				return
 			}
 
@@ -77,11 +86,12 @@ func (stats *CrawlerStats) StartWriter(interval time.Duration, db *storage.Datab
 	}()
 }
 
-// Stops writer
+// Stops writer, sends stop on channel
 func (stats *CrawlerStats) StopWriter() {
 	close(stats.stopChan)
 }
 
+// Background tracker, reads the URL queue size every interval and update current queue length
 func (stats *CrawlerStats) TrackQueueSize(rdb *storage.RedisClient) {
 	go func() {
 		ticker := time.NewTicker(1 * time.Minute)

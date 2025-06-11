@@ -10,16 +10,18 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// PageRank algorithm for distributing authority among corpus of pages
 func PageRank(graph *Graph, damping float64, iterations int) map[string]float64 {
 	N := len(graph.vertices)
-	rank := make(map[string]float64)
-	newRank := make(map[string]float64)
+	rank := make(map[string]float64)    // ranks
+	newRank := make(map[string]float64) // temp rank map
 
 	// Initialize rank with all 1/N
 	for url := range graph.vertices {
 		rank[url] = 1.0 / float64(N)
 	}
 
+	// Main iteration loop
 	for i := 0; i < iterations; i++ {
 
 		// reset newRank
@@ -36,6 +38,7 @@ func PageRank(graph *Graph, damping float64, iterations int) map[string]float64 
 					newRank[page] += damping * rank[url] / float64(N)
 				}
 			} else {
+				// non-dangling node, distribute to all outlinks
 				share := rank[url] / float64(len(outlinks))
 				for _, outlink := range outlinks {
 					newRank[outlink] += damping * share
@@ -54,6 +57,7 @@ func PageRank(graph *Graph, damping float64, iterations int) map[string]float64 
 	return rank
 }
 
+// Normalize page rank scores, uses min-max normalization
 func NormalizeScores(scores map[string]float64) map[string]float64 {
 	max := 0.0
 	min := 1000.0
@@ -82,6 +86,7 @@ func NormalizeScores(scores map[string]float64) map[string]float64 {
 	return norm
 }
 
+// Save PageRank scores to collectioin
 func SavePageRankScore(scores map[string]float64, collection *mongo.Collection, ctx context.Context) error {
 	for url, score := range scores {
 		filter := bson.M{"url": url}

@@ -56,6 +56,7 @@ func (db *Database) Disconnect() {
 	}
 }
 
+// Getter, returns database context
 func (db *Database) GetContext() *context.Context {
 	return &db.ctx
 }
@@ -70,6 +71,7 @@ func (db *Database) GetCollection(collectionname string) *mongo.Collection {
 	return db.collection[collectionname]
 }
 
+// Makes an index on field, enforces uniqueness
 func (db *Database) MakeIndex(collectionname, field string) error {
 	indexModel := mongo.IndexModel{
 		Keys: bson.M{
@@ -143,6 +145,7 @@ func (db *Database) FetchRawPageBatch(idHexes []string, collectionname string) (
 	return results, nil
 }
 
+// Gets postings for a term
 func (db *Database) FetchPostings(term string, collectionname string) (*models.TermEntry, error) {
 	var result models.TermEntry
 	err := db.collection[collectionname].FindOne(db.ctx, bson.M{"term": term}).Decode(&result)
@@ -152,6 +155,7 @@ func (db *Database) FetchPostings(term string, collectionname string) (*models.T
 	return &result, nil
 }
 
+// Batch fetches all postings for a list of terms
 func (db *Database) FetchPostingsBatch(terms []string, collectionname string) ([]models.TermEntry, error) {
 	cursor, err := db.collection[collectionname].Find(db.ctx, bson.M{
 		"term": bson.M{"$in": terms},
@@ -230,6 +234,7 @@ func (db *Database) IncrementDocCount(collectionname string) error {
 	return err
 }
 
+// Gets a pagerank score for a url
 func (db *Database) GetPageRank(url string) float64 {
 	collection := db.GetCollection("pagerank")
 	filter := bson.M{"url": url}
@@ -243,6 +248,7 @@ func (db *Database) GetPageRank(url string) float64 {
 	return result.Score
 }
 
+// Batch fetches pagerank scores for a list of urls
 func (db *Database) FetchPageRankBatch(urls []string) (map[string]float64, error) {
 	cursor, err := db.collection["pagerank"].Find(db.ctx, bson.M{
 		"url": bson.M{"$in": urls},

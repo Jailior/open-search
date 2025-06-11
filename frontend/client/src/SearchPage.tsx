@@ -7,19 +7,33 @@ import ResultCard, { type Result } from "./ResultCard";
 import MetricsCard, {type Metrics } from "./MetricsCard";
 import { FaAngleLeft } from "react-icons/fa";
 
-
+// Main search page
 export default function SearchPage() {
+  
+  // Current query
   const [query, setQuery] = useState("");
+  // Bool, true if user has searched
   const [hasSearched, setHasSearched] = useState(false);
 
+  // Results received from search, empty if !hasSearched
   const [results, setResults] = useState<Result[]>([]);
+
+  // Metrics received from request, empty if hasSearched
   const [metrics, setMetrics] = useState<Metrics>();
+
+  // Bool, true when showing metrics card
   const [showMetrics, setShowMetrics] = useState(false);
 
+  // Total number of results returned
   const [total, setTotal] = useState(0);
+
+  // Page offset for pagination
   const [offset, setOffset] = useState(0);
+
+  // Number of results in a page limit
   const limit = 15;
 
+  // Search request handler, sets view variables
   const handleSearch = async () => {
     const data = await searchQuery(query, offset, limit);
     setResults(data.results);
@@ -28,16 +42,19 @@ export default function SearchPage() {
     setShowMetrics(false);
   };
 
+  // Metrics request handler, sets view variables
   const handleMetrics = async () => {
     const data = await fetchMetrics();
     setMetrics(data.metrics);
     setShowMetrics(true);
   }
 
+  // Request search on offset change, page change
   useEffect(() => {
     if (query) handleSearch();
   }, [offset]);
 
+  // If query is empty return to main page and/or don't process search request
   useEffect(() => {
   if (query === "") {
     setHasSearched(false);
