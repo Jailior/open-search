@@ -2,7 +2,7 @@
 
 **OpenSearch** is distributed web search engine made for educational and hobbyist purposes. OpenSearch is follows the Google search architecture including microservices for crawling, indexing and querying.
 
-OpenSearch is available live now at [opensearch.app](https://opensearchengine.app/)
+OpenSearch is available live now at [opensearchengine.app](https://opensearchengine.app/)
 
 
 
