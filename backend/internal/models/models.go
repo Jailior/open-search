@@ -8,6 +8,7 @@ import (
 )
 
 /* Crawler Models*/
+
 // Key data points stored per page
 type PageData struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty"`
@@ -24,6 +25,38 @@ func PrintPage(pd PageData) {
 	log.Println("URL: ", pd.URL)
 	// log.Println("# of Outlinks: ", len(pd.Outlinks))
 }
+
+/* Indexer Models */
+
+// Redis Indexer Queue Message type
+type IndexerQueueMessage struct {
+	ID string `json:"id"` // mongodb hex _id string
+}
+
+// Information stored for a posting in a term document
+type IndexerPosting struct {
+	DocID     string  `bson:"doc_id"`
+	Title     string  `bson:"title"`
+	URL       string  `bson:"url"`
+	TF        float64 `bson:"TF"`
+	Positions []int   `bson:"positions"`
+}
+
+// Information representing a term document in database
+type TermEntry struct {
+	DF       int              `bson:"df"`
+	Postings []IndexerPosting `bson:"postings"`
+}
+
+/* PageRank models */
+
+// PageRank document stored in collection
+type PageRankScore struct {
+	URL   string  `bson:"url"`
+	Score float64 `bson:"score"`
+}
+
+/* Deprecated Models */
 
 // // Thread-safe FIFO Queue
 // type URLQueue struct {
@@ -104,32 +137,3 @@ func PrintPage(pd PageData) {
 // }
 
 // // No need for Remove function
-
-/* Indexer Models */
-
-// Redis Indexer Queue Message type
-type IndexerQueueMessage struct {
-	ID string `json:"id"` // mongodb hex _id string
-}
-
-// Information stored for a posting in a term document
-type IndexerPosting struct {
-	DocID     string  `bson:"doc_id"`
-	Title     string  `bson:"title"`
-	URL       string  `bson:"url"`
-	TF        float64 `bson:"TF"`
-	Positions []int   `bson:"positions"`
-}
-
-// Information representing a term document in database
-type TermEntry struct {
-	DF       int              `bson:"df"`
-	Postings []IndexerPosting `bson:"postings"`
-}
-
-/* PageRank models */
-
-type PageRankScore struct {
-	URL   string  `bson:"url"`
-	Score float64 `bson:"score"`
-}

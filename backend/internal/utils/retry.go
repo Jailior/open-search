@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+// Retry a function N times with exponential backoff
+// Use label for logging
 func RetryWithBackoff(operation func() error, maxRetries int, label string) error {
 	var err error
 	backoff := 500 * time.Millisecond

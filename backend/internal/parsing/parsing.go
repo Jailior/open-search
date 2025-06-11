@@ -10,6 +10,7 @@ import (
 	"golang.org/x/net/html"
 )
 
+// Normalizes, strips and canonicalize inputURL
 func NormalizeAndStripURL(inputURL string) (string, error) {
 	// parse URL via url.Parse
 	parsedURL, err := url.Parse(inputURL)
@@ -89,6 +90,7 @@ func textTraverse(s *goquery.Selection, sb *strings.Builder) {
 	})
 }
 
+// Gets plaintext string from a goquery selection
 func CleanText(doc *goquery.Selection) string {
 	doc.Find("script, style, noscript, iframe, nav, footer, header, form, link").Remove()
 
@@ -113,7 +115,8 @@ func CleanText(doc *goquery.Selection) string {
 	return text
 }
 
-// returns words and their positions in the text
+// Returns words and their positions in the text
+// Tracks only non-stopwords
 func TokenizeText(text string) map[string][]int {
 	words := make(map[string][]int)
 
@@ -138,6 +141,7 @@ func TokenizeText(text string) map[string][]int {
 	return words
 }
 
+// Splits query into non-stopword list of strings
 func TokenizeQuery(query string) []string {
 	var terms []string
 
@@ -168,6 +172,7 @@ func TokenizeQuery(query string) []string {
 	return terms
 }
 
+// Split words of string into list of string, keeps stopwords
 func SplitWords(text string) []string {
 	var words []string
 

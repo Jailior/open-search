@@ -112,6 +112,7 @@ func (db *Database) FetchRawPage(idHex string, collectionname string) (*models.P
 	return &result, err
 }
 
+// Batch fetches from raw page collection form a list of ObjectIDs
 func (db *Database) FetchRawPageBatch(idHexes []string, collectionname string) ([]models.PageData, error) {
 	var objIDs []primitive.ObjectID
 	for _, hex := range idHexes {

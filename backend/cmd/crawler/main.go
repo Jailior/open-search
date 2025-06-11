@@ -17,7 +17,7 @@ import (
 /*
 Initializes a URL queue for BFS crawling and a visited set
 to avoid repeating web pages.
-Seeds the crawler with a single initial seed.
+Seeds the crawler with initial seeds.
 */
 func main() {
 
@@ -36,6 +36,7 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
+	// Send sigs channel signal on shutdown
 	go func() {
 		<-sigs
 		log.Println("Shutdown signal received...")
@@ -65,8 +66,8 @@ func main() {
 	stats.TrackQueueSize(rdc)
 	defer stats.StopWriter()
 
+	// initialize seed links for crawler
 	seeds := make([]string, 0)
-
 	seeds = append(seeds, "https://www.google.com/")
 	seeds = append(seeds, "https://www.yahoo.com/")
 	seeds = append(seeds, "https://www.reddit.com/")
@@ -85,5 +86,6 @@ func main() {
 		}
 	}
 
-	crawler.StartCrawler(seeds, crawlCtx, *workers, ctx)
+	// Start crawler process
+	crawler.StartCrawler(crawlCtx, *workers, ctx)
 }

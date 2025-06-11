@@ -4,6 +4,7 @@
 
 package parsing
 
+// List of stopwords not considered to have value in indexing or in queries
 var Stopwords = map[string]bool{
 	"a":            true,
 	"about":        true,

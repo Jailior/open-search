@@ -17,6 +17,7 @@ type RedisClient struct {
 	Ctx    context.Context
 }
 
+// Makes a default RedisClient, gets Redis addres from environment
 func MakeRedisClient() *RedisClient {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     os.Getenv("REDIS_ADDR"),
@@ -29,17 +30,20 @@ func MakeRedisClient() *RedisClient {
 	}
 }
 
+// Clears stream with streamName
 func (r *RedisClient) ResetStream(streamName string) {
 	r.Client.Del(r.Ctx, streamName)
 	log.Println("Reset Redis stream")
 }
 
+// Clears queue and set with respective names
 func (r *RedisClient) ResetQueueAndSet(queueName, setName string) {
 	r.Client.Del(r.Ctx, queueName)
 	r.Client.Del(r.Ctx, setName)
 	log.Println("Reset Redis queue and set")
 }
 
+// Ensures a Redis Consumer Group is available in the stream
 func (r *RedisClient) EnsureConsumerGroup(streamName, group string) {
 	err := r.Client.XGroupCreateMkStream(r.Ctx, streamName, group, "$").Err()
 	if err != nil && !strings.Contains(err.Error(), "BUSYGROUP") {
@@ -107,10 +111,12 @@ func (r *RedisClient) DequeueList(listName string) (string, error) {
 	return url[1], nil
 }
 
+// Adds url to set
 func (r *RedisClient) SetAdd(url, setName string) {
 	r.Client.SAdd(r.Ctx, setName, url)
 }
 
+// Returns true if url is present in set
 func (r *RedisClient) SetHas(url, setName string) bool {
 	exists, _ := r.Client.SIsMember(r.Ctx, setName, url).Result()
 	return exists
