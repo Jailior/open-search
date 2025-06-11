@@ -46,6 +46,8 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing query"})
 		return
 	}
+	// sanitize user input, query
+	query = Sanitize(query)
 
 	// Parse query to return a list of non-stopword tokens
 	terms := parsing.TokenizeQuery(query)
@@ -55,6 +57,7 @@ func (svc *SearchService) SearchHandler(c *gin.Context) {
 	}
 
 	// pagination parameters, either default or received in request
+	// doesn't use Sanitize since controlled by frontend only
 	limit := getLimitQuery(c)
 	offset := getOffsetQuery(c)
 

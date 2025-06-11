@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -94,6 +95,18 @@ func (svc *SearchService) IncrementSearchNum() error {
 
 	_, err := collection.UpdateOne(context.Background(), filter, update, opts)
 	return err
+}
+
+// Sanitizes user input, removes leading and trailing whitespace
+// Must match allowable characters regex
+var validInput = regexp.MustCompile(`^[a-zA-Z0-9\s\-_.]+$`)
+
+func Sanitize(input string) string {
+	safe := strings.TrimSpace(input)
+	if !validInput.MatchString(safe) {
+		return ""
+	}
+	return safe
 }
 
 // Returns the min of a and b
