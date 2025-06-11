@@ -145,8 +145,13 @@ func (idx *Indexer) ProcessMessages(messages []redis.XMessage) {
 		pages, err = db.FetchRawPageBatch(ids, PAGE_INDEX_COLLECTION)
 		// if still error
 		if err != nil {
+			log.Println("ERROR: error batch reading raw pages.")
 			return
 		}
+	}
+
+	if len(pages) == 0 {
+		log.Println("ERROR: no pages retrieved from batch read.")
 	}
 
 	// index each page
