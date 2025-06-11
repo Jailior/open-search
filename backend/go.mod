@@ -7,9 +7,10 @@ require (
 	github.com/abadojack/whatlanggo v1.0.1
 	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-gonic/gin v1.10.1
-	github.com/gocolly/colly v1.2.0
 	github.com/gocolly/colly/v2 v2.2.0
 	github.com/redis/go-redis/v9 v9.9.0
+	github.com/ulule/limiter v2.2.2+incompatible
+	github.com/ulule/limiter/v3 v3.11.2
 	go.mongodb.org/mongo-driver v1.17.3
 	golang.org/x/net v0.40.0
 )
@@ -47,6 +48,7 @@ require (
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/nlnwa/whatwg-url v0.6.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/temoto/robotstxt v1.1.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect

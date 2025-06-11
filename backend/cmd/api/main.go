@@ -7,6 +7,9 @@ import (
 	"github.com/Jailior/open-search/backend/internal/storage"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/ulule/limiter/v3"
+	ginlimiter "github.com/ulule/limiter/v3/drivers/middleware/gin"
+	"github.com/ulule/limiter/v3/drivers/store/memory"
 )
 
 /*
@@ -37,6 +40,14 @@ func main() {
 		AllowHeaders:     []string{"Origin", "Content-Type"},
 		AllowCredentials: true,
 	}))
+
+	// Rate limiting api requests
+	rate, _ := limiter.NewRateFromFormatted("1000-H") // 1,000 requests per hour
+	store := memory.NewStore()
+	instance := limiter.New(store, rate)
+	limitHandler := ginlimiter.NewMiddleware(instance)
+
+	router.Use(limitHandler)
 
 	// set up router with handler endpoints
 	api.SetUpRouter(router, svc)
