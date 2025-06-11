@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/Jailior/open-search/backend/internal/models"
@@ -116,7 +117,10 @@ func (idx *Indexer) ProcessMessages(messages []redis.XMessage) {
 	rd := idx.RedisClient
 	db := idx.Database
 
-	// for each message, id, get page the id refers to from database and index it
+	// id list
+	var ids []string
+
+	// for each message get its id
 	for _, message := range messages {
 		// get doc _id
 		idVal := message.Values["id"]
@@ -125,24 +129,32 @@ func (idx *Indexer) ProcessMessages(messages []redis.XMessage) {
 			log.Println("Invalid id value in stream message")
 			continue
 		}
+		ids = append(ids, idStr)
 
-		// Get page from database
-		page, err := db.FetchRawPage(idStr, PAGE_INSERT_COLLECTION)
-		if err != nil {
-			log.Println("Mongo fetch error: ", err)
-			continue
-		}
-
-		// Index Page
-		log.Println("Title: ", page.Title)
-		log.Println("URL: ", page.URL)
-		err = idx.IndexPage(idStr, page)
-
-		// Acknowledge indexing page on shared Redis stream
-		_, err = rd.Client.XAck(rd.Ctx, idx.StreamName, idx.GroupName, message.ID).Result()
+		// Acknowledge reading page on shared Redis stream
+		_, err := rd.Client.XAck(rd.Ctx, idx.StreamName, idx.GroupName, message.ID).Result()
 		if err != nil {
 			log.Println("FAILED to ACK message: ", err)
 		}
+	}
+
+	// batch fetch raw pages by id
+	pages, err := db.FetchRawPageBatch(ids, PAGE_INDEX_COLLECTION)
+	if err != nil {
+		// retry once
+		pages, err = db.FetchRawPageBatch(ids, PAGE_INDEX_COLLECTION)
+		// if still error
+		if err != nil {
+			return
+		}
+	}
+
+	// index each page
+	for _, page := range pages {
+		// Index Page
+		log.Println("Title: ", strings.TrimSpace(page.Title))
+		log.Println("URL: ", page.URL)
+		err = idx.IndexPage(page.ID.String(), &page)
 
 	}
 }
