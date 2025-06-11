@@ -130,12 +130,6 @@ func (idx *Indexer) ProcessMessages(messages []redis.XMessage) {
 			continue
 		}
 		ids = append(ids, idStr)
-
-		// Acknowledge reading page on shared Redis stream
-		_, err := rd.Client.XAck(rd.Ctx, idx.StreamName, idx.GroupName, message.ID).Result()
-		if err != nil {
-			log.Println("FAILED to ACK message: ", err)
-		}
 	}
 
 	// batch fetch raw pages by id
@@ -152,6 +146,7 @@ func (idx *Indexer) ProcessMessages(messages []redis.XMessage) {
 
 	if len(pages) == 0 {
 		log.Println("ERROR: no pages retrieved from batch read.")
+		return
 	}
 
 	// index each page
@@ -160,6 +155,13 @@ func (idx *Indexer) ProcessMessages(messages []redis.XMessage) {
 		log.Println("Title: ", strings.TrimSpace(page.Title))
 		log.Println("URL: ", page.URL)
 		err = idx.IndexPage(page.ID.String(), &page)
+	}
 
+	for _, message := range messages {
+		// Acknowledge reading page on shared Redis stream
+		_, err := rd.Client.XAck(rd.Ctx, idx.StreamName, idx.GroupName, message.ID).Result()
+		if err != nil {
+			log.Println("FAILED to ACK message: ", err)
+		}
 	}
 }
