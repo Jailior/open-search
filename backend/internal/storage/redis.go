@@ -96,6 +96,15 @@ func (r *RedisClient) EnqueueList(url, listName, setName string) error {
 	return nil
 }
 
+// Enqueues url to front of list
+func (r *RedisClient) EnqueueFront(url, listName string) error {
+	err := r.Client.RPush(r.Ctx, listName, url).Err()
+	if err != nil {
+		return fmt.Errorf("Failed to enqueue page to list: %v\n", err)
+	}
+	return nil
+}
+
 // Dequeues url from list
 func (r *RedisClient) DequeueList(listName string) (string, error) {
 	ctx, cancel := context.WithTimeout(r.Ctx, 5*time.Second)

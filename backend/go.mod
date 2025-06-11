@@ -9,7 +9,6 @@ require (
 	github.com/gin-gonic/gin v1.10.1
 	github.com/gocolly/colly/v2 v2.2.0
 	github.com/redis/go-redis/v9 v9.9.0
-	github.com/ulule/limiter v2.2.2+incompatible
 	github.com/ulule/limiter/v3 v3.11.2
 	go.mongodb.org/mongo-driver v1.17.3
 	golang.org/x/net v0.40.0
