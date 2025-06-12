@@ -133,10 +133,10 @@ func (idx *Indexer) ProcessMessages(messages []redis.XMessage) {
 	}
 
 	// batch fetch raw pages by id
-	pages, err := db.FetchRawPageBatch(ids, PAGE_INDEX_COLLECTION)
+	pages, err := db.FetchRawPageBatch(ids, PAGE_INSERT_COLLECTION)
 	if err != nil {
 		// retry once
-		pages, err = db.FetchRawPageBatch(ids, PAGE_INDEX_COLLECTION)
+		pages, err = db.FetchRawPageBatch(ids, PAGE_INSERT_COLLECTION)
 		// if still error
 		if err != nil {
 			log.Println("ERROR: error batch reading raw pages.")
