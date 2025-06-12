@@ -67,7 +67,7 @@ export default function SearchPage() {
   return (
     <div
     className={`${styles.container} ${
-    hasSearched ? "items-start pt-12 ml-20" : "items-center justify-center"
+    hasSearched ? "items-start pt-12 ml-0 md:ml-20" : "items-center justify-center"
     }
     ${
         (hasSearched && total == 0) ? "min-h-screen" : ""
@@ -76,7 +76,7 @@ export default function SearchPage() {
     >
     
       {/* Title */}
-      <div className="sticky top-0 z-10 bg-transparent">
+      <div className="sticky bg-transparent">
         <h1 
           className={`${styles.title} ${hasSearched ? styles.titleSmall : styles.titleLarge}`}
           onClick={() => {
@@ -133,7 +133,7 @@ export default function SearchPage() {
             </button>
         </div>
             <div>
-                <p className={`${styles.factText} mt-10`}>Search from ~26,000 webpages!</p>
+                <p className={`${styles.factText} mt-10`}>Search from ~50,000 webpages!</p>
         </div>
       </>
       )}
@@ -156,7 +156,7 @@ export default function SearchPage() {
     {metrics && !hasSearched && showMetrics && (
         <>
         <div className="w-full max-w-4xl mx-auto">
-          <button className={`${styles.backButton} mb-0 ml-36`}
+          <button className={`${styles.backButton} mb-0 md:ml-36`}
             onClick={() => {
               setShowMetrics(false);
             }}>
