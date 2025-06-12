@@ -44,7 +44,7 @@ func main() {
 	// if reset flag was passed, reset Redis stream and initialize index on "term" field
 	if *reset {
 		rd.ResetStream(REDIS_INDEX_QUEUE)
-		db.MakeIndex(indexer.PAGE_INDEX_COLLECTION, "term")
+		// db.MakeIndex(indexer.PAGE_INDEX_COLLECTION, "term")
 	}
 
 	// create consumer if not already created

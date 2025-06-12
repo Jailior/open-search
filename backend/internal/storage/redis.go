@@ -62,29 +62,41 @@ func (r *RedisClient) PushToStream(stream string, key string, value string) erro
 
 // Reads a key value pair from a stream
 func (r *RedisClient) ReadStream(streamName string, group string, consumerName string) ([]redis.XMessage, error) {
-	entries, err := r.Client.XReadGroup(r.Ctx, &redis.XReadGroupArgs{
-		Group:    group,
-		Consumer: consumerName,
-		Streams:  []string{streamName, ">"},
-		Count:    10,
-		Block:    5 * time.Second, // blocks for 5 seconds
-	}).Result()
+	readIDs := []string{"0", ">"}
 
-	if err == redis.Nil {
-		// timeout likely
-		return nil, nil
+	// "0" reads any unacknowledged messages
+	// "0" reads any new messages
+
+	for _, id := range readIDs {
+
+		entries, err := r.Client.XReadGroup(r.Ctx, &redis.XReadGroupArgs{
+			Group:    group,
+			Consumer: consumerName,
+			Streams:  []string{streamName, id},
+			Count:    10,
+			Block:    5 * time.Second, // blocks for 5 seconds
+		}).Result()
+
+		if err == redis.Nil {
+			// timeout likely
+			continue
+		}
+
+		if err != nil {
+			log.Println("Redis XRead Error: ", err)
+			return nil, err
+		}
+
+		if len(entries) == 0 || len(entries[0].Messages) == 0 {
+			// return nil, fmt.Errorf("Error reading from stream, internal")
+			continue
+		}
+
+		return entries[0].Messages, nil
 	}
 
-	if err != nil {
-		log.Println("Redis XRead Error: ", err)
-		return nil, err
-	}
-
-	if len(entries) == 0 || len(entries[0].Messages) == 0 {
-		return nil, fmt.Errorf("Error reading from stream, internal")
-	}
-
-	return entries[0].Messages, nil
+	// no messages found
+	return nil, nil
 }
 
 // Enqueues url to list if url is not in set
